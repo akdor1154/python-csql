@@ -90,4 +90,4 @@ class NumericParameterRenderer:
 
 	@classmethod
 	def initialState(Self) -> RendererState:
-		return RendererState({}, 0)
+		return RendererState({}, 1)

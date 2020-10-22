@@ -7,7 +7,7 @@ def test_parameters():
 	q = Q(lambda: f"select 1 where abc = {p['abc']}", p)
 
 	assert q.build() == RenderedQuery(
-		sql="select 1 where abc = :0",
+		sql="select 1 where abc = :1",
 		parameters=['abc']
 	)
 
@@ -19,7 +19,7 @@ def test_parameters_list():
 	q = Q(lambda: f"select 1 where abc = {p['abc']} or def in {p['list']}", p)
 
 	assert q.build() == RenderedQuery(
-		sql="select 1 where abc = :0 or def in ( :1,:2,:3 )",
+		sql="select 1 where abc = :1 or def in ( :2,:3,:4 )",
 		parameters=['abc', 1, 2, 3]
 	)
 
@@ -30,6 +30,6 @@ def test_parameters_reuse():
 	q = Q(lambda: f"select 1 where abc = {p['list']} or def in {p['list']}", p)
 
 	assert q.build() == RenderedQuery(
-		sql="select 1 where abc = ( :0,:1,:2 ) or def in ( :0,:1,:2 )",
+		sql="select 1 where abc = ( :1,:2,:3 ) or def in ( :1,:2,:3 )",
 		parameters=[1, 2, 3]
 	)
