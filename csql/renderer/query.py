@@ -36,7 +36,7 @@ class BoringSQLRenderer:
 				#isinstance(part, Query)
 				depName = depNames[id(part)]
 				yield QueryPartStr(
-					f'"{depName}"'
+					depName
 				)
 			elif isinstance(part, ParameterPlaceholder):
 				# TODO
@@ -90,7 +90,7 @@ class BoringSQLRenderer:
 		for (depName, dep) in cteParts:
 			renderedDep = Self._renderSingleQuery(dep, depNames, pState)
 			depSql = dedent(f'''
-				"{depName}" as (
+				{depName} as (
 				{indent(renderedDep.sql, tab)}
 				)'''
 			).strip()

@@ -9,10 +9,10 @@ def test_basic_cte():
 
 	assert r.sql == dedent('''
 		with
-		"_subQuery0" as (
+		_subQuery0 as (
 			select 1
 		)
-		select 2 join "_subQuery0"'''
+		select 2 join _subQuery0'''
 	).strip()
 	assert r.parameters == []
 
@@ -25,13 +25,13 @@ def test_multiple_cte():
 
 	assert r.sql == dedent('''
 		with
-		"_subQuery0" as (
+		_subQuery0 as (
 			select 1
 		),
-		"_subQuery1" as (
-			select 2 join "_subQuery0"
+		_subQuery1 as (
+			select 2 join _subQuery0
 		)
-		select 3 join "_subQuery1"'''
+		select 3 join _subQuery1'''
 	).strip()
 	assert r.parameters == []
 
@@ -45,16 +45,16 @@ def test_nonlinear_cte():
 
 	assert r.sql == dedent('''
 		with
-		"_subQuery0" as (
+		_subQuery0 as (
 			select 1
 		),
-		"_subQuery1" as (
-			select 2 join "_subQuery0"
+		_subQuery1 as (
+			select 2 join _subQuery0
 		),
-		"_subQuery2" as (
-			select 3 join "_subQuery0"
+		_subQuery2 as (
+			select 3 join _subQuery0
 		)
-		select 4 join "_subQuery1" join "_subQuery2"'''
+		select 4 join _subQuery1 join _subQuery2'''
 	).strip()
 	assert r.parameters == []
 
@@ -67,15 +67,15 @@ def test_multi_root_cte():
 	r = q4.build()
 	assert r.sql == dedent('''
 		with
-		"_subQuery0" as (
+		_subQuery0 as (
 			select 1
 		),
-		"_subQuery1" as (
-			select 2 join "_subQuery0"
+		_subQuery1 as (
+			select 2 join _subQuery0
 		),
-		"_subQuery2" as (
+		_subQuery2 as (
 			select 3
 		)
-		select 4 join "_subQuery1" join "_subQuery2"'''
+		select 4 join _subQuery1 join _subQuery2'''
 	).strip()
 	assert r.parameters == []
