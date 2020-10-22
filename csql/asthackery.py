@@ -1,13 +1,16 @@
 import ast
 import inspect
-from pprint import pprint
 from typing import *
 from types import FrameType
 from dataclasses import dataclass
 from abc import ABCMeta
 import textwrap
 
-from astpretty import pprint as astprint
+try:
+	from astpretty import pprint as astprint
+except ImportError:
+	from pprint import pprint
+	astprint = pprint
 
 from .models.query import Query, QueryBit, Parameters
 
@@ -22,17 +25,6 @@ ERRORMSG = textwrap.dedent("""
 )
 
 def getLambda(fn: Callable[[], str]) -> ast.Lambda:
-	'''
-	tests:
-
-	q1 = Q(lambda: f"""select a from b""")
-
-	x = lambda: f"""select a from b2"""
-	q2 = Q(x)
-
-	Q(lambda: f""" select a from b3""")
-	Q(x)
-	'''
 
 	tree = ast.parse(inspect.getsource(fn).strip())
 	lambdas = [
@@ -50,15 +42,9 @@ def _getQueryPart(part: ast.expr, callerFrame: FrameType) -> Union[str, QueryBit
 	if isinstance(part, ast.Constant):
 		return cast(str, part.value)
 	elif isinstance(part, ast.FormattedValue):
-		# expression = ast.Expression(ast.Expr(
-		#     lineno=part.lineno, end_lineno=part.end_lineno,
-		#     col_offset=part.col_offset, end_col_offset=part.end_col_offset,
-		#     value=part.value
-		# ))
 		expression = ast.Expression(part.value)
 		compiled = compile(expression, filename='<HAX>', mode='eval')
 		result = eval(compiled, callerFrame.f_globals, callerFrame.f_locals)
-		pprint(result)
 		if isinstance(result, QueryBit):
 			return result
 		else:
