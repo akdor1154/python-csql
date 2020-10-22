@@ -10,9 +10,9 @@ __all__ = ['RendererdQuery', 'BoringSQLRenderer']
 
 
 class QueryPartStr(NamedTuple):
-    str: str
+	str: str
 class QueryPartParam(NamedTuple):
-    value: Any
+	value: Any
 QueryPart = Union[QueryPartStr, QueryPartParam]
 
 DepNames = Dict[int, str] # dict of id(query) to query name
@@ -20,97 +20,96 @@ DepNames = Dict[int, str] # dict of id(query) to query name
 PState = RendererState
 
 class BoringSQLRenderer:
-    """Render a Query. I'm crossing my fingers that I never have to handle sql dialects, but if they I do, they will be subclasses of this."""
+	"""Render a Query. I'm crossing my fingers that I never have to handle sql dialects, but if they I do, they will be subclasses of this."""
 
-    paramRenderer = NumericParameterRenderer
-    # "pState" => state for the paramRenderer. atm this is always just an int to track which numeric param we are up to.
+	paramRenderer = NumericParameterRenderer
+	# "pState" => state for the paramRenderer. atm this is always just an int to track which numeric param we are up to.
 
-    @classmethod
-    def __renderSingleQuery(Self, query: Query, depNames: DepNames, pState: PState) -> Generator[QueryPart, None, PState]:
-        for part in query.queryParts:
-            if isinstance(part, str):
-                yield QueryPartStr(
-                    part
-                )
-            elif isinstance(part, Query):
-                #isinstance(part, Query)
-                depName = depNames[id(part)]
-                yield QueryPartStr(
-                    f'"{depName}"'
-                )
-            elif isinstance(part, ParameterPlaceholder):
-                # TODO
-                paramKey = part.key
-                paramValue = part.value
+	@classmethod
+	def __renderSingleQuery(Self, query: Query, depNames: DepNames, pState: PState) -> Generator[QueryPart, None, PState]:
+		for part in query.queryParts:
+			if isinstance(part, str):
+				yield QueryPartStr(
+					part
+				)
+			elif isinstance(part, Query):
+				#isinstance(part, Query)
+				depName = depNames[id(part)]
+				yield QueryPartStr(
+					f'"{depName}"'
+				)
+			elif isinstance(part, ParameterPlaceholder):
+				# TODO
+				paramKey = part.key
 
-                ((sql, values), newPState) = Self.paramRenderer.render(paramKey, query.parameters, pState)
-                pState = newPState
+				((sql, values), newPState) = Self.paramRenderer.render(paramKey, query.parameters, pState)
+				pState = newPState
 
-                yield QueryPartStr(sql)
-                yield from (QueryPartParam(value) for value in values)
-        return pState
+				yield QueryPartStr(sql)
+				yield from (QueryPartParam(value) for value in values)
+		return pState
 
-    class RenderedSingleQuery(NamedTuple):
-        sql: str
-        paramValues: List[Any]
-        nextPState: PState
+	class RenderedSingleQuery(NamedTuple):
+		sql: str
+		paramValues: List[Any]
+		nextPState: PState
 
-    @classmethod
-    def _renderSingleQuery(Self, query: Query, depNames: DepNames, pState: PState) -> RenderedSingleQuery:
-        queryBits = Collector(Self.__renderSingleQuery(query, depNames, pState))
-        strBits: List[str] = []
-        params: List[Any] = []
-        for bit in queryBits:
-            if isinstance(bit, QueryPartStr):
-                strBits.append(bit.str)
-            elif isinstance(bit, QueryPartParam):
-                params.append(bit.value)
+	@classmethod
+	def _renderSingleQuery(Self, query: Query, depNames: DepNames, pState: PState) -> RenderedSingleQuery:
+		queryBits = Collector(Self.__renderSingleQuery(query, depNames, pState))
+		strBits: List[str] = []
+		params: List[Any] = []
+		for bit in queryBits:
+			if isinstance(bit, QueryPartStr):
+				strBits.append(bit.str)
+			elif isinstance(bit, QueryPartParam):
+				params.append(bit.value)
 
-        return Self.RenderedSingleQuery(
-            sql="".join(strBits),
-            paramValues=params,
-            nextPState=queryBits.returned
-        )
+		return Self.RenderedSingleQuery(
+			sql="".join(strBits),
+			paramValues=params,
+			nextPState=queryBits.returned
+		)
 
-    @classmethod
-    def render(Self, query: Query) -> RenderedQuery:
-        """Renders a query and all its dependencies into a CTE expression."""
-        cteParts = []
-        depNames = {}
-        i = 0
-        for dep in query._getDeps():
-            subName = f"_subQuery{i}"
-            i += 1
-            depNames[id(dep)] = subName
-            cteParts.append((subName, dep))
+	@classmethod
+	def render(Self, query: Query) -> RenderedQuery:
+		"""Renders a query and all its dependencies into a CTE expression."""
+		cteParts = []
+		depNames = {}
+		i = 0
+		for dep in query._getDeps():
+			subName = f"_subQuery{i}"
+			i += 1
+			depNames[id(dep)] = subName
+			cteParts.append((subName, dep))
 
-        tab = '\t'
-        pState = Self.paramRenderer.initialState()
-        depSqls: List[str] = []
-        paramValues: List[Any] = []
-        for (depName, dep) in cteParts:
-            renderedDep = Self._renderSingleQuery(dep, depNames, pState)
-            depSql = dedent(f'''
-                "{depName}" as (
-                    {indent(renderedDep.sql, tab)}
-                )'''
-            )
-            depSqls.append(depSql)
-            paramValues.extend(renderedDep.paramValues)
-            pState = renderedDep.nextPState
+		tab = '\t'
+		pState = Self.paramRenderer.initialState()
+		depSqls: List[str] = []
+		paramValues: List[Any] = []
+		for (depName, dep) in cteParts:
+			renderedDep = Self._renderSingleQuery(dep, depNames, pState)
+			depSql = dedent(f'''
+				"{depName}" as (
+				{indent(renderedDep.sql, tab)}
+				)'''
+			).strip()
+			depSqls.append(depSql)
+			paramValues.extend(renderedDep.paramValues)
+			pState = renderedDep.nextPState
 
-        cteString = "with " + ", ".join(depSqls)
+		cteString = "with\n" + ",\n".join(depSqls)
 
-        renderedSelf = Self._renderSingleQuery(query, depNames, pState)
-        paramValues.extend(renderedSelf.paramValues)
+		renderedSelf = Self._renderSingleQuery(query, depNames, pState)
+		paramValues.extend(renderedSelf.paramValues)
 
-        fullSql = (
-            f"{cteString}\n{renderedSelf.sql}"
-            if len(cteParts) > 1
-            else renderedSelf.sql
-        )
+		fullSql = (
+			f"{cteString}\n{renderedSelf.sql}"
+			if len(cteParts) >= 1
+			else renderedSelf.sql
+		)
 
-        return RenderedQuery(
-            sql=fullSql,
-            parameters=paramValues
-        )
+		return RenderedQuery(
+			sql=fullSql,
+			parameters=paramValues
+		)
