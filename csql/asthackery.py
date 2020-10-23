@@ -39,9 +39,7 @@ def getLambda(fn: Callable[[], str]) -> ast.Lambda:
 		raise Exception(ERRORMSG)
 
 def _getQueryPart(part: ast.expr, callerFrame: FrameType) -> Union[str, QueryBit]:
-	if isinstance(part, ast.Constant):
-		return cast(str, part.value)
-	elif isinstance(part, ast.FormattedValue):
+	if isinstance(part, ast.FormattedValue):
 		expression = ast.Expression(part.value)
 		compiled = compile(expression, filename='<HAX>', mode='eval')
 		result = eval(compiled, callerFrame.f_globals, callerFrame.f_locals)
@@ -50,8 +48,9 @@ def _getQueryPart(part: ast.expr, callerFrame: FrameType) -> Union[str, QueryBit
 		else:
 			return str(result)
 	else:
-		astprint(part)
-		raise Exception("fstring had something (dumped above) that was not a Constant or a FormattedValue!")
+	#elif isinstance(part, ast.Constant): <- needs 3.8+
+		val = ast.literal_eval(part)
+		return str(val)
 
 def getQueryParts(f: Callable[[], str], callerFrame: FrameType) -> List[Union[str, QueryBit]]:
 	lambdaAst = getLambda(f)
