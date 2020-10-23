@@ -74,12 +74,14 @@ workflows:
               python_docker_tag: ["3.6", "3.7", "3.8", "3.9"]
           filters:
             tags:
-              only: /^candidate_v\d+\.\d+\.\d+.*$/
+              only: /^v\d+\.\d+\.\d+.*$/
       - register:
           requires:
             - test
+          contexts:
+            - Python CSQL
           filters:
             tags:
-              only: /^candidate_v\d+\.\d+\.\d+.*$/
+              only: /^v\d+\.\d+\.\d+.*$/
             branches:
               ignore: /.*/
