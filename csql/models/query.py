@@ -8,6 +8,14 @@ class RenderedQuery(NamedTuple):
 	sql: str
 	parameters: List[Any]
 
+	# utility properties for easy splatting
+	@property
+	def pd(self) -> Dict[str, Any]:
+		return dict(
+			sql=self.sql,
+			params=self.parameters
+		)
+
 class QueryBit(metaclass=ABCMeta):
 	pass
 
@@ -28,6 +36,16 @@ class Query(QueryBit):
 	def build(self) -> RenderedQuery:
 		from ..renderer.query import BoringSQLRenderer
 		return BoringSQLRenderer.render(self)
+
+	def preview_pd(self, con, rows=10) -> "pd.DataFrame":
+		import pandas as pd
+		from csql import Q
+		p = Parameters(rows=rows)
+		previewQ = Q(lambda: f"""select * from {self} limit {p['rows']}""", p)
+		return pd.read_sql(**previewQ.build().pd, con=con)
+
+	def pd(self) -> Dict[str, Any]:
+		return self.build().pd
 
 
 @dataclass
