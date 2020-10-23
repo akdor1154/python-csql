@@ -5,12 +5,17 @@ description = ""
 authors = ["Jarrad Whitaker <akdor1154@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.6"
+python = "^3.6.1"
 dataclasses = {version = "^0.7", python = "<3.7"}
+pandas = {version = "^1", optional = true}
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.1.1"
+astpretty = "^2.0.0"
 
 [build-system]
 requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"
+
+[tool.poetry.extras]
+pandas = ["pandas"]

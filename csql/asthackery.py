@@ -5,12 +5,20 @@ from types import FrameType
 from dataclasses import dataclass
 from abc import ABCMeta
 import textwrap
+import sys
 
 try:
 	from astpretty import pprint as astprint
 except ImportError:
 	from pprint import pprint
 	astprint = pprint
+
+if sys.version_info >= (3, 8):
+	AST_CONSTANT_TYPES = (ast.Constant,)
+elif sys.version_info >= (3, 6):
+	AST_CONSTANT_TYPES = (ast.Str, ast.Constant)
+else:
+	raise Exception('Needs Python >= 3.6, sorry!')
 
 from .models.query import Query, QueryBit, Parameters
 
@@ -47,10 +55,12 @@ def _getQueryPart(part: ast.expr, callerFrame: FrameType) -> Union[str, QueryBit
 			return result
 		else:
 			return str(result)
-	else:
-	#elif isinstance(part, ast.Constant): <- needs 3.8+
+	elif isinstance(part, AST_CONSTANT_TYPES):
 		val = ast.literal_eval(part)
 		return str(val)
+	else:
+		astprint(part)
+		raise Exception("fstring had something (dumped above) that was not a Constant or a FormattedValue!")
 
 def getQueryParts(f: Callable[[], str], callerFrame: FrameType) -> List[Union[str, QueryBit]]:
 	lambdaAst = getLambda(f)
@@ -62,8 +72,9 @@ def getQueryParts(f: Callable[[], str], callerFrame: FrameType) -> List[Union[st
 			_getQueryPart(part, callerFrame)
 			for part in joinedStr.values
 		]
-	elif isinstance(lambdaAst.body, ast.Constant):
-		return [lambdaAst.body.value]
+	elif isinstance(lambdaAst.body, AST_CONSTANT_TYPES):
+		val = ast.literal_eval(lambdaAst.body)
+		return [str(val)]
 	else:
 		astprint(lambdaAst)
 		raise Exception(ERRORMSG)
