@@ -1,11 +1,11 @@
 [tool.poetry]
-name = "composeable-sql"
+name = "csql"
 version = "0.1.0"
 description = ""
 authors = ["Jarrad Whitaker <akdor1154@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.6"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.1.1"
