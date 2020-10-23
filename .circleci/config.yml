@@ -1,0 +1,85 @@
+# Use the latest 2.1 version of CircleCI pipeline process engine. See: https://circleci.com/docs/2.0/configuration-reference
+version: 2.1
+
+executors:
+  python_docker:
+    parameters:
+      python_docker_tag:
+        type: string
+    docker:
+      - image: cimg/python:<< parameters.python_docker_tag >>
+  publisher:
+    docker:
+      - image: cimg/python:3.9
+
+jobs:
+  test:
+    parameters:
+      python_docker_tag:
+        type: string
+    executor:
+      name: python_docker
+      python_docker_tag: << parameters.python_docker_tag >>
+    steps:
+      - run:
+          name: Install poetry
+          command: |
+            python -m pip install --update poetry
+
+      - checkout
+
+      - restore_cache:
+          keys:
+            - >
+              v1
+              python_artifacts
+              << parameters.python_docker_tag >>
+              {{ checksum "pyproject.toml" }}
+              {{ checksum "poetry.lock" }}
+
+
+      - run:
+          name: Install test dependencies
+          command: poetry install
+
+      - save_cache:
+          key: >
+              v1
+              python_artifacts
+              << parameters.python_docker_tag >>
+              {{ checksum "pyproject.toml" }}
+              {{ checksum "poetry.lock" }}
+          paths:
+            - .venv
+
+      - run:
+          name: pytest
+          command: poetry run pytest
+
+  register:
+    executor:
+      name: publisher
+    steps:
+      - checkout
+      # - run:
+      #     name: register
+      #     command: .circleci/registrator.sh
+
+workflows:
+  testAndRegister:
+    jobs:
+      - test:
+          matrix:
+            parameters:
+              python_docker_tag: ["3.6", "3.7", "3.8", "3.9"]
+          filters:
+            tags:
+              only: /^candidate_v\d+\.\d+\.\d+.*$/
+      - register:
+          requires:
+            - test
+          filters:
+            tags:
+              only: /^candidate_v\d+\.\d+\.\d+.*$/
+            branches:
+              ignore: /.*/
