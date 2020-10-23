@@ -60,10 +60,15 @@ jobs:
     executor:
       name: publisher
     steps:
+      - run:
+          name: Install poetry
+          command: python -m pip install --upgrade poetry
+
       - checkout
-      # - run:
-      #     name: register
-      #     command: .circleci/registrator.sh
+
+      - run:
+          name: register
+          command: .circleci/publish.sh
 
 workflows:
   testAndRegister:
