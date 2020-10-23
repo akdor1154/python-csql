@@ -33,3 +33,14 @@ def test_parameters_reuse():
 		sql="select 1 where abc = ( :1,:2,:3 ) or def in ( :1,:2,:3 )",
 		parameters=[1, 2, 3]
 	)
+
+def test_parameters_getattr():
+	p = Parameters(
+		abc='abc'
+	)
+	q = Q(lambda: f"select 1 where abc = {p.abc}", p)
+
+	assert q.build() == RenderedQuery(
+		sql="select 1 where abc = :1",
+		parameters=['abc']
+	)
