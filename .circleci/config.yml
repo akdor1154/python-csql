@@ -24,7 +24,7 @@ jobs:
       - run:
           name: Install poetry
           command: |
-            python -m pip install --update poetry
+            python -m pip install --upgrade poetry
 
       - checkout
 
