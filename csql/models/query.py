@@ -74,3 +74,7 @@ class Parameters:
 	def __getitem__(self, key: str) -> ParameterPlaceholder:
 		paramVal = self.params[key] # check existence
 		return ParameterPlaceholder(key=key)
+	
+	def __getattr__(self, key: str) -> ParameterPlaceholder:
+		paramVal = self.params[key] # check existence
+		return ParameterPlaceholder(key=key)
