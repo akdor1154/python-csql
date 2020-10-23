@@ -25,6 +25,7 @@ jobs:
           name: Install poetry
           command: |
             python -m pip install --upgrade poetry
+            poetry config virtualenvs.in-project true
 
       - checkout
 
@@ -62,7 +63,9 @@ jobs:
     steps:
       - run:
           name: Install poetry
-          command: python -m pip install --upgrade poetry
+          command: |
+            python -m pip install --upgrade poetry
+            poetry config virtualenvs.in-project true
 
       - checkout
 
