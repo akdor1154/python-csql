@@ -2,7 +2,6 @@
 name = "csql"
 description = "Simple library for writing composeable SQL queries"
 version = "0.2.2"
-description = ""
 authors = ["Jarrad Whitaker <akdor1154@gmail.com>"]
 licence = "LGPLv3"
 readme = "README.md"
