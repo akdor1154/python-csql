@@ -1,8 +1,22 @@
 [tool.poetry]
 name = "csql"
+description = "Simple library for writing composeable SQL queries"
 version = "0.2.2"
 description = ""
 authors = ["Jarrad Whitaker <akdor1154@gmail.com>"]
+licence = "LGPLv3"
+readme = "README.md"
+homepage = "https://github.com/akdor1154/python-csql"
+repository = "https://github.com/akdor1154/python-csql"
+keywords = ["sql", "analytics"]
+classifiers = [
+	"Development Status :: 3 - Alpha",
+	"Operating System :: OS Independent",
+	"Topic :: Database"
+]
+include = [
+	"LICENCE.md"
+]
 
 [tool.poetry.dependencies]
 python = "^3.6.1"
