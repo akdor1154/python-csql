@@ -78,8 +78,7 @@ workflows:
       - register:
           requires:
             - test
-          contexts:
-            - Python CSQL
+          context: Python CSQL
           filters:
             tags:
               only: /^v\d+\.\d+\.\d+.*$/
