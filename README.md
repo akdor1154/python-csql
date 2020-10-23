@@ -6,7 +6,7 @@ There are also useful features for handling database parameters properly.
 
 The intended use-case is for data analysis and exploration. There's a particular hacky part of the current implementation that leads me to discourage using this in a productionized application: for that scenario you could still use this to generate your sql in a build step or something.
 
-[![PyPI version](https://badge.fury.io/py/csql.svg)](https://badge.fury.io/py/csql)
+[![PyPI version](https://badge.fury.io/py/csql.svg)](https://pypi.org/project/csql/)
 
 ## Example:
 
