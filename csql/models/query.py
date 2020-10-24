@@ -45,7 +45,7 @@ class Query(QueryBit):
 		from csql import Q
 		p = Parameters(rows=rows)
 		previewQ = Q(lambda: f"""select * from {self} limit {p['rows']}""", p)
-		return pd.read_sql(**previewQ.build().pd, con=con)
+		return pd.read_sql(**previewQ.pd(), con=con)
 
 	def pd(self) -> Dict[str, Any]:
 		return self.build().pd
@@ -77,7 +77,7 @@ class Parameters:
 	def __getitem__(self, key: str) -> ParameterPlaceholder:
 		paramVal = self.params[key] # check existence
 		return ParameterPlaceholder(key=key)
-	
+
 	def __getattr__(self, key: str) -> ParameterPlaceholder:
 		paramVal = self.params[key] # check existence
 		return ParameterPlaceholder(key=key)
