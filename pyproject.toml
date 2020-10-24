@@ -25,6 +25,7 @@ pandas = {version = "^1", optional = true}
 [tool.poetry.dev-dependencies]
 pytest = "^6.1.1"
 astpretty = "^2.0.0"
+mypy = "^0.790"
 
 [build-system]
 requires = ["poetry>=0.12"]
