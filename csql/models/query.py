@@ -4,6 +4,9 @@ from abc import ABCMeta
 from ..utils import unique
 from textwrap import dedent
 
+if TYPE_CHECKING:
+	import pandas as pd
+
 class RenderedQuery(NamedTuple):
 	sql: str
 	parameters: List[Any]
@@ -37,7 +40,7 @@ class Query(QueryBit):
 		from ..renderer.query import BoringSQLRenderer
 		return BoringSQLRenderer.render(self)
 
-	def preview_pd(self, con, rows=10) -> "pd.DataFrame":
+	def preview_pd(self, con: Any, rows: int=10) -> "pd.DataFrame":
 		import pandas as pd
 		from csql import Q
 		p = Parameters(rows=rows)
