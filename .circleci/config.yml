@@ -54,6 +54,10 @@ jobs:
             - .venv
 
       - run:
+          name: mypy
+          command: poetry run mypy csql tests
+
+      - run:
           name: pytest
           command: poetry run pytest
 
