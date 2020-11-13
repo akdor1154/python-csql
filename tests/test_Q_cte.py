@@ -1,9 +1,11 @@
 from csql import Q, RenderedQuery, Parameters
 from textwrap import dedent
 from pprint import pprint
+
+
 def test_basic_cte():
-	q1 = Q(lambda: f"select 1")
-	q2 = Q(lambda: f"select 2 join {q1}")
+	q1 = Q(f"select 1")
+	q2 = Q(f"select 2 join {q1}")
 
 	r = q2.build()
 
@@ -17,9 +19,9 @@ def test_basic_cte():
 	assert r.parameters == []
 
 def test_multiple_cte():
-	q1 = Q(lambda: f"select 1")
-	q2 = Q(lambda: f"select 2 join {q1}")
-	q3 = Q(lambda: f"select 3 join {q2}")
+	q1 = Q(f"select 1")
+	q2 = Q(f"select 2 join {q1}")
+	q3 = Q(f"select 3 join {q2}")
 
 	r = q3.build()
 
@@ -36,10 +38,10 @@ def test_multiple_cte():
 	assert r.parameters == []
 
 def test_nonlinear_cte():
-	q1 = Q(lambda: f"select 1")
-	q2 = Q(lambda: f"select 2 join {q1}")
-	q3 = Q(lambda: f"select 3 join {q1}")
-	q4 = Q(lambda: f"select 4 join {q2} join {q3}")
+	q1 = Q(f"select 1")
+	q2 = Q(f"select 2 join {q1}")
+	q3 = Q(f"select 3 join {q1}")
+	q4 = Q(f"select 4 join {q2} join {q3}")
 
 	r = q4.build()
 
@@ -59,10 +61,10 @@ def test_nonlinear_cte():
 	assert r.parameters == []
 
 def test_multi_root_cte():
-	q1 = Q(lambda: f"select 1")
-	q2 = Q(lambda: f"select 2 join {q1}")
-	q3 = Q(lambda: f"select 3")
-	q4 = Q(lambda: f"select 4 join {q2} join {q3}")
+	q1 = Q(f"select 1")
+	q2 = Q(f"select 2 join {q1}")
+	q3 = Q(f"select 3")
+	q4 = Q(f"select 4 join {q2} join {q3}")
 
 	r = q4.build()
 	assert r.sql == dedent('''

@@ -1,21 +1,22 @@
 from typing import *
-from types import FrameType
-import inspect
-from .asthackery import getQueryParts
+from .input import strparsing
 from .models.query import Query, Parameters, RenderedQuery
-
-def _getCallerFrame(qframe: Optional[FrameType]) -> FrameType:
-	assert qframe is not None, "CPython only! Go vote for PEP-501."
-	parentFrame = qframe.f_back
-	assert parentFrame is not None, "Couldn\'t get caller frame! Go whinge that PEP-501 never got implemented."
-	return parentFrame
+import warnings
+from textwrap import dedent
 
 def Q(sql: Union[str, Callable[[], str]], parameters: Optional[Parameters] = None) -> Query:
 	if callable(sql):
-		callerFrame = _getCallerFrame(inspect.currentframe())
-		queryParts = getQueryParts(sql, callerFrame)
+		warnings.warn(
+			dedent('''
+				Passing a lambda to Q is deprecated! You can now just pass an interpolated string directly:
+					Q(f"select from {blah}")
+			''').strip(),
+			category=DeprecationWarning,
+			stacklevel=2
+		)
+		queryParts = strparsing.getQueryParts(sql())
 	else:
-		queryParts = [sql]
+		queryParts = strparsing.getQueryParts(sql)
 
 	return Query(
 		queryParts=queryParts,
