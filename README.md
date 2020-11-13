@@ -4,7 +4,7 @@
 
 There are also useful features for handling database parameters properly.
 
-The intended use-case is for data analysis and exploration. There's a particular hacky part of the current implementation that leads me to discourage using this in a productionized application: for that scenario you could still use this to generate your sql in a build step or something.
+The intended use-case is for data analysis and exploration.
 
 [![PyPI version](https://badge.fury.io/py/csql.svg)](https://pypi.org/project/csql/)
 
@@ -23,7 +23,7 @@ Start with a straightforward query:
 p = Parameters(
 	created_on = date(2020,1,1)
 )
-q1 = Q(lambda: f"""
+q1 = Q(f"""
 select
 	customers.id,
 	first(customers.name) as name,
@@ -52,7 +52,7 @@ The preview will pull down 10 rows to a) sanity-check the result of what you've 
 
 Now, try building some new queries *that build on your previous queries*:
 ```py
-q2 = Q(lambda: f"""
+q2 = Q(f"""
 select
 	ntile(100) over (order by sales)
 		as ntile_100,
@@ -73,7 +73,7 @@ print(q2.preview_pd(con))
 -----
 
 ```py
-q3 = Q(lambda: f"""
+q3 = Q(f"""
 select
 	ntile_100,
 	min(sales),
@@ -142,28 +142,3 @@ It's also not actually tied to `pandas` at all - `.pd()` is just a convenience m
  - Implement other preview systems than `pandas` (input wanted! what would be useful for you?)
  - Finalize API to be as ergonomic as possible for interactive use (input wanted!)
  - Implement some way of actually storing previous results, e.g. into temp tables. (uh oh, this would need DB-specific awareness :( )
- - Consider other ways of nicely specifying dependent queries that don't rely on AST-parsing magic (e.g. maybe overloading __add__ and __radd__? `"select 1 from " + q1 + "where ..."`?)
-
-## What was that 'particular hacky part of the current implementation'?
-
-Glad you asked. Consider what goes on here:
-```py
-Q(lambda: f"""select 1 from {otherQuery}""")
-```
-We need to
- - get the SQL in a way that we can inject dependencies in to it
- - get the dependent queries
- - build the dependent queries into a CTE, and inject the names of previous clauses in this CTE into later ones as appropriate
- - not go down the rabbit hole of actually parsing SQL, this will certainly end in a headache and unsupported SQL dialects, which would be a big deal for the intended use case of interactive analytical queries against analytics DBs.
-
-String interpolation is nearly adequate for this. Unfortunately, Python lacks the ability to "hook in" to string interpolation to the extent that would be required to. For example, in Javascript or Julia, it would be possible to define a string interpolation function or string macro like
-```js
-Q`select 1 from ${otherQuery}`
-```
-and it would satisfy all of the above.
-
-However, Python lacks this ability, and the PEP to add it doesn't look likely to land any time soon, if ever (see: https://www.python.org/dev/peps/pep-0501/)
-
-As a workaround, my current strategy is to require `Q` to be called with the fstring wrapped in a lambda, run getsource() to get the AST of the lambda, pull out the f-string AST node, and execute it myself, so I can pull out dependent queries and parameters properly. (I think e.g. pytest does similar hackery to get its magic `assert` diffs.)
-
-This seems to work in most simple cases and the implementation is not complex. However it's still brittle and a bit shit. (in practice, the biggest drawback I've found is it won't work in the REPL.)
