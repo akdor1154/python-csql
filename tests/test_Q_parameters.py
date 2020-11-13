@@ -1,6 +1,6 @@
-from csql import Q, RenderedQuery, Parameters
+from csql import RenderedQuery, Parameters
 
-def test_parameters():
+def test_parameters(Q):
 	p = Parameters(
 		abc='abc'
 	)
@@ -11,7 +11,7 @@ def test_parameters():
 		parameters=['abc']
 	)
 
-def test_parameters_list():
+def test_parameters_list(Q):
 	p = Parameters(
 		abc='abc',
 		list=[1, 2, 3]
@@ -23,7 +23,7 @@ def test_parameters_list():
 		parameters=['abc', 1, 2, 3]
 	)
 
-def test_parameters_reuse():
+def test_parameters_reuse(Q):
 	p = Parameters(
 		list=[1, 2, 3]
 	)
@@ -34,7 +34,7 @@ def test_parameters_reuse():
 		parameters=[1, 2, 3]
 	)
 
-def test_parameters_getattr():
+def test_parameters_getattr(Q):
 	p = Parameters(
 		abc='abc'
 	)

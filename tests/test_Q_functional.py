@@ -1,8 +1,8 @@
-from csql import Q, RenderedQuery, Parameters
+from csql import RenderedQuery, Parameters
 from textwrap import dedent
 from pprint import pprint
 
-def test_cte_params():
+def test_cte_params(Q):
 	p1 = Parameters(abc='abc')
 	q1 = Q(lambda: f"select 1 where val = {p1['abc']}", p1)
 	q2 = Q(lambda: f"select 2 join {q1}")
@@ -19,7 +19,7 @@ def test_cte_params():
 	assert r.parameters == ['abc']
 
 
-def test_cte_params_2():
+def test_cte_params_2(Q):
 	p1 = Parameters(abc='abc')
 	q1 = Q(lambda: f"select 1 where val = {p1['abc']}", p1)
 	p2 = Parameters(abc='def')
@@ -37,7 +37,7 @@ def test_cte_params_2():
 	assert r.parameters == ['abc', 'def']
 
 
-def test_reused_params():
+def test_reused_params(Q):
 	p = Parameters(abc='abc', bcd='bcd')
 	q1 = Q(lambda: f"select 1 where val = {p['abc']}", p)
 	q2 = Q(lambda: f"select 2 join {q1} where val = {p['bcd']} or val = {p['abc']}", p)

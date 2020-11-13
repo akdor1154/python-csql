@@ -20,7 +20,7 @@ elif sys.version_info >= (3, 6):
 else:
 	raise Exception('Needs Python >= 3.6, sorry!')
 
-from .models.query import Query, QueryBit, Parameters
+from ..models.query import Query, QueryBit, Parameters
 
 ERRORMSG = textwrap.dedent("""
 	Can only deal with simple code constructs, e.g.
