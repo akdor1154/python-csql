@@ -89,11 +89,14 @@ class BoringSQLRenderer:
 		paramValues: List[Any] = []
 		for (depName, dep) in cteParts:
 			renderedDep = Self._renderSingleQuery(dep, depNames, pState)
-			depSql = dedent(f'''
-				{depName} as (
-				{indent(renderedDep.sql, tab)}
-				)'''
-			).strip()
+			dedented = dedent(renderedDep.sql).strip()
+			depSql = (
+f'''\
+{depName} as (
+{indent(dedented, tab)}
+)'''
+)
+			print(depSql)
 			depSqls.append(depSql)
 			paramValues.extend(renderedDep.paramValues)
 			pState = renderedDep.nextPState
@@ -104,7 +107,7 @@ class BoringSQLRenderer:
 		paramValues.extend(renderedSelf.paramValues)
 
 		fullSql = (
-			f"{cteString}\n{renderedSelf.sql}"
+			f"{cteString}\n{dedent(renderedSelf.sql).strip()}"
 			if len(cteParts) >= 1
 			else renderedSelf.sql
 		)

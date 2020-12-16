@@ -52,3 +52,32 @@ def test_reused_params():
 		select 2 join _subQuery0 where val = :2 or val = :1'''
 	).strip()
 	assert r.parameters == ['abc', 'bcd']
+
+def test_indenting():
+	q1 = Q(f"""
+		select
+			1
+		from dummy
+	""")
+
+	q2 = Q(f"""
+		select
+			sum(1)
+		from {q1}
+		where 1 = 1
+	""")
+
+	r = q2.build()
+
+	assert r.sql == '''\
+with
+_subQuery0 as (
+	select
+		1
+	from dummy
+)
+select
+	sum(1)
+from _subQuery0
+where 1 = 1\
+'''
