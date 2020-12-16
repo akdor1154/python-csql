@@ -96,7 +96,6 @@ f'''\
 {indent(dedented, tab)}
 )'''
 )
-			print(depSql)
 			depSqls.append(depSql)
 			paramValues.extend(renderedDep.paramValues)
 			pState = renderedDep.nextPState

@@ -1,5 +1,7 @@
 ## Unreleased
 
+## v0.3.2
+  - patch release to remove extraneous print
 ## v0.3.1
   - make big queries format more nicely by using textwrap.dedent() and indent() - i haven't tested in a huge amount of cases and I probably can't
     make every possible query beautiful, but most things should look a bit better now.
