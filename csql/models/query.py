@@ -21,6 +21,10 @@ class RenderedQuery(NamedTuple):
 			params=self.parameters
 		)
 
+	@property
+	def db(self) -> Tuple[str, List[Any]]:
+		return (self.sql, self.parameters)
+
 class QueryBit(metaclass=ABCMeta):
 	pass
 
@@ -53,6 +57,9 @@ class Query(QueryBit, InstanceTracking):
 
 	def pd(self) -> Dict[str, Any]:
 		return self.build().pd
+
+	def db(self) -> Tuple[str, List[Any]]:
+		return self.build().db
 
 
 @dataclass
