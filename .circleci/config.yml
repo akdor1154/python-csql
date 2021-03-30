@@ -24,6 +24,7 @@ jobs:
       - run:
           name: Install poetry
           command: |
+            python -m pip install --upgrade pip
             python -m pip install --upgrade poetry
             poetry config virtualenvs.in-project true
 
@@ -32,7 +33,7 @@ jobs:
       - restore_cache:
           keys:
             - >
-              v1
+              v2
               python_artifacts
               << parameters.python_docker_tag >>
               {{ checksum "pyproject.toml" }}
@@ -45,7 +46,7 @@ jobs:
 
       - save_cache:
           key: >
-              v1
+              v2
               python_artifacts
               << parameters.python_docker_tag >>
               {{ checksum "pyproject.toml" }}
