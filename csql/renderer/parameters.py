@@ -3,6 +3,8 @@ from ..models.query import Parameters
 from collections.abc import Collection as CollectionABC
 import functools
 from itertools import chain
+import abc
+from abc import ABC
 
 ScalarParameterValue = Any
 class RenderedParameter(NamedTuple):
@@ -27,7 +29,7 @@ class RenderedNumericParameter(NamedTuple):
 # state to be able to handle numeric parameters.
 # I will leave this stateless for now but will probably change it
 # if I ever handle other parameter styles (e.g. qmark)
-class NumericParameterRenderer:
+class NumericParameterRenderer(ABC):
 
 	@classmethod
 	def _renderCollection(Self, paramValues: Collection[ScalarParameterValue], startFrom: int) -> _RenderedNumericParameter:
@@ -51,10 +53,15 @@ class NumericParameterRenderer:
 			nextStartFrom = i
 		)
 
+	@abc.abstractclassmethod
+	@classmethod
+	def _renderSql(Self, startFrom: int) -> str:
+		pass
+
 	@classmethod
 	def _renderScalar(Self, paramValue: ScalarParameterValue, startFrom: int) -> _RenderedNumericParameter:
 		param = RenderedParameter(
-			sql=f':{startFrom}',
+			sql=Self._renderSql(startFrom),
 			values=[paramValue]
 		)
 		return _RenderedNumericParameter(param=param, nextStartFrom=startFrom+1)
@@ -91,3 +98,13 @@ class NumericParameterRenderer:
 	@classmethod
 	def initialState(Self) -> RendererState:
 		return RendererState({}, 1)
+
+class ColonNumeric(NumericParameterRenderer):
+	@classmethod
+	def _renderSql(Self, startFrom: int) -> str:
+		return f':{startFrom}'
+
+class DollarNumeric(NumericParameterRenderer):
+	@classmethod
+	def _renderSql(Self, startFrom: int) -> str:
+		return f'${startFrom}'

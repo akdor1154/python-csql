@@ -4,7 +4,8 @@ from abc import ABCMeta
 
 from ..utils import Collector
 from ..models.query import Query, ParameterPlaceholder, RenderedQuery
-from .parameters import NumericParameterRenderer, RendererState
+from ..models.dialect import SQLDialect, ParamStyle
+from .parameters import NumericParameterRenderer, RendererState, ColonNumeric, DollarNumeric
 
 __all__ = ['RendererdQuery', 'BoringSQLRenderer']
 
@@ -22,11 +23,17 @@ PState = RendererState
 class BoringSQLRenderer:
 	"""Render a Query. I'm crossing my fingers that I never have to handle sql dialects, but if they I do, they will be subclasses of this."""
 
+	dialect: SQLDialect
 	paramRenderer = NumericParameterRenderer
 	# "pState" => state for the paramRenderer. atm this is always just an int to track which numeric param we are up to.
+	def __init__(self, dialect: SQLDialect):
+		self.dialect = dialect
+		if self.dialect.paramstyle == ParamStyle.numeric:
+			self.paramRenderer = ColonNumeric
+		elif self.dialect.paramstyle == ParamStyle.numeric_dollar:
+			self.paramRenderer = DollarNumeric
 
-	@classmethod
-	def __renderSingleQuery(Self, query: Query, depNames: DepNames, pState: PState) -> Generator[QueryPart, None, PState]:
+	def __renderSingleQuery(self, query: Query, depNames: DepNames, pState: PState) -> Generator[QueryPart, None, PState]:
 		for part in query.queryParts:
 			if isinstance(part, str):
 				yield QueryPartStr(
@@ -42,7 +49,7 @@ class BoringSQLRenderer:
 				# TODO
 				paramKey = part.key
 
-				((sql, values), newPState) = Self.paramRenderer.render(paramKey, query.parameters, pState)
+				((sql, values), newPState) = self.paramRenderer.render(paramKey, query.parameters, pState)
 				pState = newPState
 
 				yield QueryPartStr(sql)
@@ -54,9 +61,8 @@ class BoringSQLRenderer:
 		paramValues: List[Any]
 		nextPState: PState
 
-	@classmethod
-	def _renderSingleQuery(Self, query: Query, depNames: DepNames, pState: PState) -> RenderedSingleQuery:
-		queryBits = Collector(Self.__renderSingleQuery(query, depNames, pState))
+	def _renderSingleQuery(self, query: Query, depNames: DepNames, pState: PState) -> RenderedSingleQuery:
+		queryBits = Collector(self.__renderSingleQuery(query, depNames, pState))
 		strBits: List[str] = []
 		params: List[Any] = []
 		for bit in queryBits:
@@ -71,8 +77,7 @@ class BoringSQLRenderer:
 			nextPState=queryBits.returned
 		)
 
-	@classmethod
-	def render(Self, query: Query) -> RenderedQuery:
+	def render(self, query: Query) -> RenderedQuery:
 		"""Renders a query and all its dependencies into a CTE expression."""
 		cteParts = []
 		depNames = {}
@@ -84,7 +89,7 @@ class BoringSQLRenderer:
 			cteParts.append((subName, dep))
 
 		tab = '\t'
-		pState = Self.paramRenderer.initialState()
+		pState = self.paramRenderer.initialState()
 		depSqls: List[str] = []
 		paramValues: List[Any] = []
 		for (depName, dep) in cteParts:
@@ -102,7 +107,7 @@ f'''\
 
 		cteString = "with\n" + ",\n".join(depSqls)
 
-		renderedSelf = Self._renderSingleQuery(query, depNames, pState)
+		renderedSelf = self._renderSingleQuery(query, depNames, pState)
 		paramValues.extend(renderedSelf.paramValues)
 
 		fullSql = (
