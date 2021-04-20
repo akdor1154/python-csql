@@ -1,93 +1,131 @@
 from typing import *
 from ..models.query import Parameters
+from ..models.dialect import SQLDialect, ParamStyle
+from ..utils import assert_never
 from collections.abc import Collection as CollectionABC
 import functools
 from itertools import chain
+import abc
+from abc import ABC
 
 ScalarParameterValue = Any
 class RenderedParameter(NamedTuple):
 	sql: str
 	values: List[ScalarParameterValue]
 
-# internal state
-class _RenderedNumericParameter(NamedTuple):
-	param: RenderedParameter
-	nextStartFrom: int
+class ParameterRenderer(ABC):
+	@staticmethod
+	def get(dialect: SQLDialect) -> Type['ParameterRenderer']:
+		if dialect.paramstyle is ParamStyle.numeric:
+			return ColonNumeric
+		elif dialect.paramstyle is ParamStyle.numeric_dollar:
+			return DollarNumeric
+		elif dialect.paramstyle is ParamStyle.qmark:
+			return QMark
+		else:
+			assert_never(dialect.paramstyle)
 
-class RendererState(NamedTuple):
-	renderedKeys: Dict[int, RenderedParameter]
-	nextStartFrom: int
+	@abc.abstractmethod
+	def _renderScalar(self, paramValue: ScalarParameterValue) -> RenderedParameter:
+		pass
 
-class RenderedNumericParameter(NamedTuple):
-	param: RenderedParameter
-	nextState: RendererState
+	def _renderCollection(self, paramValues: Collection[ScalarParameterValue]) -> RenderedParameter:
+		_params = [
+			self._renderScalar(paramValue)
+			for paramValue in paramValues
+		]
 
-#I can't decide if this should be stateful or not.
-# Either this is stateful or the SQLRenderer needs to maintain special
-# state to be able to handle numeric parameters.
-# I will leave this stateless for now but will probably change it
-# if I ever handle other parameter styles (e.g. qmark)
-class NumericParameterRenderer:
-
-	@classmethod
-	def _renderCollection(Self, paramValues: Collection[ScalarParameterValue], startFrom: int) -> _RenderedNumericParameter:
-		params: List[RenderedParameter] = []
-		i = startFrom
-		for paramValue in paramValues:
-			rendered = Self._renderScalar(paramValue, i)
-
-			params.append(rendered.param)
-			i = rendered.nextStartFrom
-
-		return _RenderedNumericParameter(
-			param=RenderedParameter(
-				sql=f'( {",".join(p.sql for p in params)} )',
-				values=[
-					value
-					for param in params
-					for value in param.values
-				]
-			),
-			nextStartFrom = i
+		return RenderedParameter(
+			sql=f'( {",".join(p.sql for p in _params)} )',
+			values=[
+				value
+				for param in _params
+				for value in param.values
+			]
 		)
 
-	@classmethod
-	def _renderScalar(Self, paramValue: ScalarParameterValue, startFrom: int) -> _RenderedNumericParameter:
-		param = RenderedParameter(
-			sql=f':{startFrom}',
+	def render(self, paramKey: str, parameters: Parameters) -> RenderedParameter:
+		paramValue = parameters.params[paramKey]
+		if isinstance(paramValue, CollectionABC) and not isinstance(paramValue, str):
+			param = self._renderCollection(paramValue)
+		else:
+			param = self._renderScalar(paramValue)
+		return param
+
+
+class QMark(ParameterRenderer):
+
+	def _renderScalar(self, paramValue: ScalarParameterValue) -> RenderedParameter:
+		return RenderedParameter(
+			sql='?',
 			values=[paramValue]
 		)
-		return _RenderedNumericParameter(param=param, nextStartFrom=startFrom+1)
 
-	@classmethod
-	def render(Self, paramKey: str, parameters: Parameters, state: RendererState) -> RenderedNumericParameter:
-		paramValue = parameters.params[paramKey]
+class NumericParameterRenderer(ParameterRenderer, ABC):
 
-		key = id(parameters) ^ hash(paramKey)
+	class GimmeAnIndex:
+		_i: int
+		def __init__(self, start: int):
+			self._i = start
+		def take(self) -> int:
+			i = self._i
+			self._i += 1
+			return i
 
-		if key in state.renderedKeys:
-			preRendered = state.renderedKeys[key]
-			return RenderedNumericParameter(
-				param=RenderedParameter(
-					sql=preRendered.sql,
-					values=[]
-				),
-				nextState=state
-			)
+	renderedKeys: Dict[int, RenderedParameter]
+	indexGranter: GimmeAnIndex
 
-		if isinstance(paramValue, CollectionABC) and not isinstance(paramValue, str):
-			(param, nextStartFrom) = Self._renderCollection(paramValue, state.nextStartFrom)
-		else:
-			(param, nextStartFrom) = Self._renderScalar(paramValue, state.nextStartFrom)
+	def __init__(self) -> None:
+		self.renderedKeys = {}
+		self.indexGranter = NumericParameterRenderer.GimmeAnIndex(1)
 
-		return RenderedNumericParameter(
-			param=param,
-			nextState=RendererState(
-				renderedKeys = {**state.renderedKeys, key: param},
-				nextStartFrom = nextStartFrom
-			)
+	def _renderCollection(self, paramValues: Collection[ScalarParameterValue]) -> RenderedParameter:
+		_params = [
+			self._renderScalar(paramValue)
+			for paramValue in paramValues
+		]
+
+		return RenderedParameter(
+			sql=f'( {",".join(p.sql for p in _params)} )',
+			values=[
+				value
+				for param in _params
+				for value in param.values
+			]
 		)
 
-	@classmethod
-	def initialState(Self) -> RendererState:
-		return RendererState({}, 1)
+	@abc.abstractmethod
+	def _renderSql(self, paramIndex: int) -> str:
+		pass
+
+	def _renderScalar(self, paramValue: ScalarParameterValue) -> RenderedParameter:
+		paramIndex = self.indexGranter.take()
+
+		return RenderedParameter(
+			sql=self._renderSql(paramIndex),
+			values=[paramValue]
+		)
+		return
+
+	def render(self, paramKey: str, parameters: Parameters) -> RenderedParameter:
+		key = id(parameters) ^ hash(paramKey)
+
+		if key in self.renderedKeys:
+			preRendered = self.renderedKeys[key]
+			return RenderedParameter(
+				sql=preRendered.sql,
+				values=[]
+			)
+		else:
+			param = super().render(paramKey, parameters)
+			self.renderedKeys = {**self.renderedKeys, key: param}
+			return param
+
+
+class ColonNumeric(NumericParameterRenderer):
+	def _renderSql(Self, startFrom: int) -> str:
+		return f':{startFrom}'
+
+class DollarNumeric(NumericParameterRenderer):
+	def _renderSql(Self, startFrom: int) -> str:
+		return f'${startFrom}'

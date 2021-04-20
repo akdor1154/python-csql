@@ -136,6 +136,46 @@ which is exactly the sort of unmaintainable and undebuggable monstrosity that th
 I am perhaps overly optimistic about this, but currently I think this should work with most SQL dialects. It doesn't attempt to parse your SQL, uses CTEs which are widely supported, and passes numeric style parameters.
 It's also not actually tied to `pandas` at all - `.pd()` is just a convenience method to build a dict you can splat into pd.read_sql.
 
+## Dialects (TODO: API DOCS INSTEAD OF MORE SHITTY README SECTIONS)
+
+Different dialects can be specified at render time, or as the default dialect of your Queries. Currently the only thing dialects control is parameter rendering, but I expect to see some scope creep around here...
+Dialects are instances of `SQLDialect` and can be found in `csql.dialect`. The default dialect is `DefaultDialect`, which uses a numeric parameter renderer. You can specify your own prefered dialect per-query:
+```py
+import csql
+import csql.dialect
+
+q = csql.Q(
+	f"select 1 from thinger",
+	dialect=csql.dialect.DuckDB
+)
+```
+
+If you want to set a default, use `functools.partial` like so:
+```py
+import csql
+import csql.dialect
+import functools
+Q = functools.partial(csql.Q, dialect=csql.dialect.DuckDB)
+q = Q(f"select 1 from thinger")
+```
+
+You can also construct your own dialects:
+```py
+import csql.dialect
+MyDialect = csql.dialect.SQLDialect(
+	paramstyle=csql.dialect.ParamStyle.qmark
+)
+```
+
+### Dialect Options:
+
+#### paramstyle: csql.dialect.ParamStyle
+
+`paramstyle` can be one of
+ - `ParamStyle.numeric` (`where abc = :1`)
+ - `ParamStyle.numeric_dollar` (`where abc = $1`)
+ - `ParamStyle.qmark` (`where abc = ?`)
+
 ## TODO / Future Experiments:
 
  - Document the API (for now, just read the tests)

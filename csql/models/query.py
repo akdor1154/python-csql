@@ -5,6 +5,7 @@ from ..utils import unique
 from textwrap import dedent
 from ..input.strparsing import InstanceTracking
 from weakref import WeakValueDictionary
+from .dialect import SQLDialect
 
 if TYPE_CHECKING:
 	import pandas as pd
@@ -34,6 +35,7 @@ class Query(QueryBit, InstanceTracking):
 
 	queryParts: List[Union[str, QueryBit]]
 	parameters: "Parameters"
+	default_dialect: SQLDialect
 
 	def _getDeps_(self) -> Iterable["Query"]:
 		queryDeps = (part for part in self.queryParts if isinstance(part, Query))
@@ -44,9 +46,10 @@ class Query(QueryBit, InstanceTracking):
 	def _getDeps(self) -> Iterable["Query"]:
 		return unique(self._getDeps_(), fn=id)
 
-	def build(self) -> RenderedQuery:
+	def build(self, dialect: Optional[SQLDialect] = None) -> RenderedQuery:
+		dialect = dialect or self.default_dialect
 		from ..renderer.query import BoringSQLRenderer
-		return BoringSQLRenderer.render(self)
+		return BoringSQLRenderer(dialect).render(self)
 
 	def preview_pd(self, con: Any, rows: int=10) -> "pd.DataFrame":
 		import pandas as pd

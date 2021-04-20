@@ -4,7 +4,8 @@ from abc import ABCMeta
 
 from ..utils import Collector
 from ..models.query import Query, ParameterPlaceholder, RenderedQuery
-from .parameters import NumericParameterRenderer, RendererState
+from ..models.dialect import SQLDialect, ParamStyle
+from .parameters import ParameterRenderer, ColonNumeric, DollarNumeric
 
 __all__ = ['RendererdQuery', 'BoringSQLRenderer']
 
@@ -17,16 +18,17 @@ QueryPart = Union[QueryPartStr, QueryPartParam]
 
 DepNames = Dict[int, str] # dict of id(query) to query name
 
-PState = RendererState
-
 class BoringSQLRenderer:
 	"""Render a Query. I'm crossing my fingers that I never have to handle sql dialects, but if they I do, they will be subclasses of this."""
 
-	paramRenderer = NumericParameterRenderer
+	dialect: SQLDialect
+	paramRenderer: ParameterRenderer
 	# "pState" => state for the paramRenderer. atm this is always just an int to track which numeric param we are up to.
+	def __init__(self, dialect: SQLDialect):
+		self.dialect = dialect
+		self.paramRenderer = ParameterRenderer.get(dialect)()
 
-	@classmethod
-	def __renderSingleQuery(Self, query: Query, depNames: DepNames, pState: PState) -> Generator[QueryPart, None, PState]:
+	def __renderSingleQuery(self, query: Query, depNames: DepNames) -> Generator[QueryPart, None, None]:
 		for part in query.queryParts:
 			if isinstance(part, str):
 				yield QueryPartStr(
@@ -42,21 +44,17 @@ class BoringSQLRenderer:
 				# TODO
 				paramKey = part.key
 
-				((sql, values), newPState) = Self.paramRenderer.render(paramKey, query.parameters, pState)
-				pState = newPState
+				sql, values = self.paramRenderer.render(paramKey, query.parameters)
 
 				yield QueryPartStr(sql)
 				yield from (QueryPartParam(value) for value in values)
-		return pState
 
 	class RenderedSingleQuery(NamedTuple):
 		sql: str
 		paramValues: List[Any]
-		nextPState: PState
 
-	@classmethod
-	def _renderSingleQuery(Self, query: Query, depNames: DepNames, pState: PState) -> RenderedSingleQuery:
-		queryBits = Collector(Self.__renderSingleQuery(query, depNames, pState))
+	def _renderSingleQuery(self, query: Query, depNames: DepNames) -> RenderedSingleQuery:
+		queryBits = Collector(self.__renderSingleQuery(query, depNames))
 		strBits: List[str] = []
 		params: List[Any] = []
 		for bit in queryBits:
@@ -65,14 +63,12 @@ class BoringSQLRenderer:
 			elif isinstance(bit, QueryPartParam):
 				params.append(bit.value)
 
-		return Self.RenderedSingleQuery(
+		return self.RenderedSingleQuery(
 			sql="".join(strBits),
-			paramValues=params,
-			nextPState=queryBits.returned
+			paramValues=params
 		)
 
-	@classmethod
-	def render(Self, query: Query) -> RenderedQuery:
+	def render(self, query: Query) -> RenderedQuery:
 		"""Renders a query and all its dependencies into a CTE expression."""
 		cteParts = []
 		depNames = {}
@@ -84,11 +80,10 @@ class BoringSQLRenderer:
 			cteParts.append((subName, dep))
 
 		tab = '\t'
-		pState = Self.paramRenderer.initialState()
 		depSqls: List[str] = []
 		paramValues: List[Any] = []
 		for (depName, dep) in cteParts:
-			renderedDep = Self._renderSingleQuery(dep, depNames, pState)
+			renderedDep = self._renderSingleQuery(dep, depNames)
 			dedented = dedent(renderedDep.sql).strip()
 			depSql = (
 f'''\
@@ -98,11 +93,10 @@ f'''\
 )
 			depSqls.append(depSql)
 			paramValues.extend(renderedDep.paramValues)
-			pState = renderedDep.nextPState
 
 		cteString = "with\n" + ",\n".join(depSqls)
 
-		renderedSelf = Self._renderSingleQuery(query, depNames, pState)
+		renderedSelf = self._renderSingleQuery(query, depNames)
 		paramValues.extend(renderedSelf.paramValues)
 
 		fullSql = (

@@ -1,4 +1,5 @@
 from csql import Q, RenderedQuery, Parameters
+from csql.dialect import SQLDialect, DefaultDialect, ParamStyle
 from textwrap import dedent
 from pprint import pprint
 
@@ -81,3 +82,13 @@ select
 from _subQuery0
 where 1 = 1\
 '''
+
+
+def test_default_dialect():
+	p = Parameters(abc='abc')
+	q1 = Q(f"select 1 where val = {p['abc']}", p, dialect=DefaultDialect._replace(paramstyle=ParamStyle.qmark))
+
+	r = q1.build()
+
+	assert r.sql == 'select 1 where val = ?'
+	assert r.parameters == ['abc']

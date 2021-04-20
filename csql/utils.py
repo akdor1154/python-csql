@@ -1,4 +1,5 @@
 from typing import *
+from typing import NoReturn # py 3.6
 
 
 #https://stackoverflow.com/a/34073559/5264127
@@ -19,3 +20,6 @@ def unique(gen: Iterable[T], fn:Callable[[T], Any] = hash) -> Iterable[T]:
 			continue
 		yield val
 		seen.add(fn(val))
+
+def assert_never(x: NoReturn) -> NoReturn:
+	assert False, f'Unhandled type: {type(x).__name__}'
