@@ -24,6 +24,7 @@ jobs:
       - run:
           name: Install poetry
           command: |
+            python -m pip install --upgrade pip
             python -m pip install --upgrade poetry
             poetry config virtualenvs.in-project true
 
