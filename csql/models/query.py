@@ -43,7 +43,7 @@ class Query(QueryBit, InstanceTracking):
 
 	def build(self, dialect: SQLDialect = DefaultDialect) -> RenderedQuery:
 		from ..renderer.query import BoringSQLRenderer
-		return BoringSQLRenderer.render(self, dialect)
+		return BoringSQLRenderer(dialect).render(self)
 
 	def preview_pd(self, con: Any, rows: int=10) -> "pd.DataFrame":
 		import pandas as pd

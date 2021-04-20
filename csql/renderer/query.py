@@ -5,7 +5,7 @@ from abc import ABCMeta
 from ..utils import Collector
 from ..models.query import Query, ParameterPlaceholder, RenderedQuery
 from ..models.dialect import SQLDialect, ParamStyle
-from .parameters import NumericParameterRenderer, RendererState, ColonNumeric, DollarNumeric
+from .parameters import ParameterRenderer, RendererState, ColonNumeric, DollarNumeric
 
 __all__ = ['RendererdQuery', 'BoringSQLRenderer']
 
@@ -24,14 +24,14 @@ class BoringSQLRenderer:
 	"""Render a Query. I'm crossing my fingers that I never have to handle sql dialects, but if they I do, they will be subclasses of this."""
 
 	dialect: SQLDialect
-	paramRenderer = NumericParameterRenderer
+	paramRenderer: ParameterRenderer
 	# "pState" => state for the paramRenderer. atm this is always just an int to track which numeric param we are up to.
 	def __init__(self, dialect: SQLDialect):
 		self.dialect = dialect
 		if self.dialect.paramstyle == ParamStyle.numeric:
-			self.paramRenderer = ColonNumeric
+			self.paramRenderer = ColonNumeric()
 		elif self.dialect.paramstyle == ParamStyle.numeric_dollar:
-			self.paramRenderer = DollarNumeric
+			self.paramRenderer = DollarNumeric()
 
 	def __renderSingleQuery(self, query: Query, depNames: DepNames, pState: PState) -> Generator[QueryPart, None, PState]:
 		for part in query.queryParts:
@@ -71,7 +71,7 @@ class BoringSQLRenderer:
 			elif isinstance(bit, QueryPartParam):
 				params.append(bit.value)
 
-		return Self.RenderedSingleQuery(
+		return self.RenderedSingleQuery(
 			sql="".join(strBits),
 			paramValues=params,
 			nextPState=queryBits.returned
@@ -93,7 +93,7 @@ class BoringSQLRenderer:
 		depSqls: List[str] = []
 		paramValues: List[Any] = []
 		for (depName, dep) in cteParts:
-			renderedDep = Self._renderSingleQuery(dep, depNames, pState)
+			renderedDep = self._renderSingleQuery(dep, depNames, pState)
 			dedented = dedent(renderedDep.sql).strip()
 			depSql = (
 f'''\

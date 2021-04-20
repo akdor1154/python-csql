@@ -24,19 +24,28 @@ class RenderedNumericParameter(NamedTuple):
 	param: RenderedParameter
 	nextState: RendererState
 
+
+class ParameterRenderer(ABC):
+	@abc.abstractmethod
+	def render(self, paramKey: str, parameters: Parameters, state: RendererState) -> RenderedNumericParameter:
+		pass
+
+	@abc.abstractmethod
+	def initialState(self) -> RendererState:
+		pass
+
 #I can't decide if this should be stateful or not.
 # Either this is stateful or the SQLRenderer needs to maintain special
 # state to be able to handle numeric parameters.
 # I will leave this stateless for now but will probably change it
 # if I ever handle other parameter styles (e.g. qmark)
-class NumericParameterRenderer(ABC):
+class NumericParameterRenderer(ParameterRenderer, ABC):
 
-	@classmethod
-	def _renderCollection(Self, paramValues: Collection[ScalarParameterValue], startFrom: int) -> _RenderedNumericParameter:
+	def _renderCollection(self, paramValues: Collection[ScalarParameterValue], startFrom: int) -> _RenderedNumericParameter:
 		params: List[RenderedParameter] = []
 		i = startFrom
 		for paramValue in paramValues:
-			rendered = Self._renderScalar(paramValue, i)
+			rendered = self._renderScalar(paramValue, i)
 
 			params.append(rendered.param)
 			i = rendered.nextStartFrom
@@ -53,21 +62,18 @@ class NumericParameterRenderer(ABC):
 			nextStartFrom = i
 		)
 
-	@abc.abstractclassmethod
-	@classmethod
+	@abc.abstractmethod
 	def _renderSql(Self, startFrom: int) -> str:
 		pass
 
-	@classmethod
-	def _renderScalar(Self, paramValue: ScalarParameterValue, startFrom: int) -> _RenderedNumericParameter:
+	def _renderScalar(self, paramValue: ScalarParameterValue, startFrom: int) -> _RenderedNumericParameter:
 		param = RenderedParameter(
-			sql=Self._renderSql(startFrom),
+			sql=self._renderSql(startFrom),
 			values=[paramValue]
 		)
 		return _RenderedNumericParameter(param=param, nextStartFrom=startFrom+1)
 
-	@classmethod
-	def render(Self, paramKey: str, parameters: Parameters, state: RendererState) -> RenderedNumericParameter:
+	def render(self, paramKey: str, parameters: Parameters, state: RendererState) -> RenderedNumericParameter:
 		paramValue = parameters.params[paramKey]
 
 		key = id(parameters) ^ hash(paramKey)
@@ -83,9 +89,9 @@ class NumericParameterRenderer(ABC):
 			)
 
 		if isinstance(paramValue, CollectionABC) and not isinstance(paramValue, str):
-			(param, nextStartFrom) = Self._renderCollection(paramValue, state.nextStartFrom)
+			(param, nextStartFrom) = self._renderCollection(paramValue, state.nextStartFrom)
 		else:
-			(param, nextStartFrom) = Self._renderScalar(paramValue, state.nextStartFrom)
+			(param, nextStartFrom) = self._renderScalar(paramValue, state.nextStartFrom)
 
 		return RenderedNumericParameter(
 			param=param,
@@ -95,16 +101,13 @@ class NumericParameterRenderer(ABC):
 			)
 		)
 
-	@classmethod
-	def initialState(Self) -> RendererState:
+	def initialState(self) -> RendererState:
 		return RendererState({}, 1)
 
 class ColonNumeric(NumericParameterRenderer):
-	@classmethod
 	def _renderSql(Self, startFrom: int) -> str:
 		return f':{startFrom}'
 
 class DollarNumeric(NumericParameterRenderer):
-	@classmethod
 	def _renderSql(Self, startFrom: int) -> str:
 		return f'${startFrom}'
