@@ -56,3 +56,27 @@ def test_parameters_dialect_dollar_numeric():
 		sql="select 1 where abc = $1",
 		parameters=['abc']
 	)
+
+def test_parameters_dialect_qmark():
+	p = Parameters(
+		abc='abc'
+	)
+	q = Q(f"select 1 where abc = {p['abc']}", p)
+	dialect = SQLDialect(paramstyle=ParamStyle.qmark)
+	assert q.build(dialect) == RenderedQuery(
+		sql="select 1 where abc = ?",
+		parameters=['abc']
+	)
+
+
+def test_parameters_dialect_qmark_reuse():
+	p = Parameters(
+		list=[1, 2, 3]
+	)
+	q = Q(f"select 1 where abc = {p['list']} or def in {p['list']}", p)
+
+	dialect = SQLDialect(paramstyle=ParamStyle.qmark)
+	assert q.build(dialect) == RenderedQuery(
+		sql="select 1 where abc = ( ?,?,? ) or def in ( ?,?,? )",
+		parameters=[1, 2, 3, 1, 2, 3]
+	)

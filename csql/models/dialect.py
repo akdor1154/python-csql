@@ -6,6 +6,7 @@ from typing import *
 __all__ = [
 	'ParamStyle',
 	'SQLDialect',
+	'DefaultDialect',
 	'Snowflake',
 	'DuckDB'
 ]
@@ -13,11 +14,12 @@ __all__ = [
 class ParamStyle(enum.Enum):
 	numeric = auto()
 	numeric_dollar = auto()
+	qmark = auto()
 
 class SQLDialect(NamedTuple):
 	paramstyle: ParamStyle
 
-Default = SQLDialect(
+DefaultDialect = SQLDialect(
 	paramstyle=ParamStyle.numeric
 )
 

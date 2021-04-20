@@ -1,6 +1,7 @@
 from typing import *
 from ..models.query import Parameters
 from ..models.dialect import SQLDialect, ParamStyle
+from ..utils import assert_never
 from collections.abc import Collection as CollectionABC
 import functools
 from itertools import chain
@@ -13,24 +14,53 @@ class RenderedParameter(NamedTuple):
 	values: List[ScalarParameterValue]
 
 class ParameterRenderer(ABC):
-	@abc.abstractmethod
-	def render(self, paramKey: str, parameters: Parameters) -> RenderedParameter:
-		pass
-
 	@staticmethod
 	def get(dialect: SQLDialect) -> Type['ParameterRenderer']:
-		if dialect.paramstyle == ParamStyle.numeric:
+		if dialect.paramstyle is ParamStyle.numeric:
 			return ColonNumeric
-		elif dialect.paramstyle == ParamStyle.numeric_dollar:
+		elif dialect.paramstyle is ParamStyle.numeric_dollar:
 			return DollarNumeric
+		elif dialect.paramstyle is ParamStyle.qmark:
+			return QMark
 		else:
-			raise NotImplementedError(f'unknown paramstyle {dialect.paramstyle}')
+			assert_never(dialect.paramstyle)
 
-#I can't decide if this should be stateful or not.
-# Either this is stateful or the SQLRenderer needs to maintain special
-# state to be able to handle numeric parameters.
-# I will leave this stateless for now but will probably change it
-# if I ever handle other parameter styles (e.g. qmark)
+	@abc.abstractmethod
+	def _renderScalar(self, paramValue: ScalarParameterValue) -> RenderedParameter:
+		pass
+
+	def _renderCollection(self, paramValues: Collection[ScalarParameterValue]) -> RenderedParameter:
+		_params = [
+			self._renderScalar(paramValue)
+			for paramValue in paramValues
+		]
+
+		return RenderedParameter(
+			sql=f'( {",".join(p.sql for p in _params)} )',
+			values=[
+				value
+				for param in _params
+				for value in param.values
+			]
+		)
+
+	def render(self, paramKey: str, parameters: Parameters) -> RenderedParameter:
+		paramValue = parameters.params[paramKey]
+		if isinstance(paramValue, CollectionABC) and not isinstance(paramValue, str):
+			param = self._renderCollection(paramValue)
+		else:
+			param = self._renderScalar(paramValue)
+		return param
+
+
+class QMark(ParameterRenderer):
+
+	def _renderScalar(self, paramValue: ScalarParameterValue) -> RenderedParameter:
+		return RenderedParameter(
+			sql='?',
+			values=[paramValue]
+		)
+
 class NumericParameterRenderer(ParameterRenderer, ABC):
 
 	class GimmeAnIndex:
@@ -78,8 +108,6 @@ class NumericParameterRenderer(ParameterRenderer, ABC):
 		return
 
 	def render(self, paramKey: str, parameters: Parameters) -> RenderedParameter:
-		paramValue = parameters.params[paramKey]
-
 		key = id(parameters) ^ hash(paramKey)
 
 		if key in self.renderedKeys:
@@ -88,15 +116,10 @@ class NumericParameterRenderer(ParameterRenderer, ABC):
 				sql=preRendered.sql,
 				values=[]
 			)
-
-		if isinstance(paramValue, CollectionABC) and not isinstance(paramValue, str):
-			param = self._renderCollection(paramValue)
 		else:
-			param = self._renderScalar(paramValue)
-
-		self.renderedKeys = {**self.renderedKeys, key: param}
-
-		return param
+			param = super().render(paramKey, parameters)
+			self.renderedKeys = {**self.renderedKeys, key: param}
+			return param
 
 
 class ColonNumeric(NumericParameterRenderer):

@@ -19,3 +19,6 @@ def unique(gen: Iterable[T], fn:Callable[[T], Any] = hash) -> Iterable[T]:
 			continue
 		yield val
 		seen.add(fn(val))
+
+def assert_never(x: NoReturn) -> NoReturn:
+	assert False, f'Unhandled type: {type(x).__name__}'
