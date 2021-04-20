@@ -1,4 +1,5 @@
 from typing import *
+from typing import NoReturn # py 3.6
 
 
 #https://stackoverflow.com/a/34073559/5264127
