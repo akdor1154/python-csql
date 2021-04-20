@@ -1,3 +1,7 @@
-from .models.dialect import *
-from .models import dialect
-__all__ = dialect.__all__
+from .models.dialect import (
+	SQLDialect as SQLDialect,
+	ParamStyle as ParamStyle,
+	DefaultDialect as DefaultDialect,
+	DuckDB as DuckDB,
+	Snowflake as Snowflake
+)
