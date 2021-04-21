@@ -109,7 +109,6 @@ class QueryBit(metaclass=ABCMeta):
 class Query(QueryBit, InstanceTracking):
 
 	queryParts: List[Union[str, QueryBit]]
-	parameters: "Parameters"
 	default_dialect: SQLDialect
 
 	def _getDeps_(self) -> Iterable["Query"]:
@@ -147,7 +146,8 @@ class Query(QueryBit, InstanceTracking):
 @dataclass
 class ParameterPlaceholder(QueryBit, InstanceTracking):
 	key: str
-
+	value: Any
+	parameters: 'Parameters'
 
 
 class Parameters:
@@ -158,8 +158,8 @@ class Parameters:
 
 	def __getitem__(self, key: str) -> ParameterPlaceholder:
 		paramVal = self.params[key] # check existence
-		return ParameterPlaceholder(key=key)
+		return ParameterPlaceholder(key=key, value=paramVal, parameters=self)
 
 	def __getattr__(self, key: str) -> ParameterPlaceholder:
 		paramVal = self.params[key] # check existence
-		return ParameterPlaceholder(key=key)
+		return ParameterPlaceholder(key=key, value=paramVal, parameters=self)

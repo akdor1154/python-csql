@@ -34,7 +34,7 @@ from
 	join sales on customers.id = sales.customer_id
 where created_on > {p['created_on']}}
 group by customers.id
-""", p)
+""")
 
 print(q1.preview_pd(con))
 ```

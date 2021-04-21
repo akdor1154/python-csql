@@ -19,8 +19,17 @@ def Q(sql: Union[str, Callable[[], str]], parameters: Optional[Parameters] = Non
 	else:
 		queryParts = strparsing.getQueryParts(sql)
 
+	if parameters is not None:
+		warnings.warn(
+			dedent('''
+				Passing parameters to Q as a separate argument is no longer necessary! You can continue to just interpolate params:
+					Q(f"select from {blah} where abc = {p['abc']}")
+			'''),
+			category=DeprecationWarning,
+			stacklevel=2
+		)
+
 	return Query(
 		queryParts=queryParts,
-		parameters=parameters or Parameters(),
 		default_dialect=dialect
 	)

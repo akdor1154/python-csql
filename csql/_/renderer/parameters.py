@@ -1,5 +1,5 @@
 from typing import *
-from ..models.query import Parameters, ParameterList
+from ..models.query import Parameters, ParameterList, ParameterPlaceholder
 from ..models.dialect import SQLDialect, ParamStyle
 from ..utils import assert_never
 from collections.abc import Collection as CollectionABC
@@ -73,15 +73,16 @@ class ParameterRenderer(ABC):
 
 		return (indices, SQL(f'( {",".join(sql)} )'))
 
-	def render(self, paramKey: str, parameters: Parameters) -> SQL:
-		paramValue = parameters.params[paramKey]
+	def render(self, param: ParameterPlaceholder) -> SQL:
+		paramKey = param.key
+		paramValue = param.value
 		if isinstance(paramValue, CollectionABC) and not isinstance(paramValue, str):
-			indices, param = self._renderCollection(paramValue)
+			indices, sql = self._renderCollection(paramValue)
 		else:
-			index, param = self._renderScalar(paramValue)
+			index, sql = self._renderScalar(paramValue)
 			indices = [index]
 		self.renderedParams.registerKey(paramKey, indices)
-		return param
+		return sql
 
 
 class QMark(ParameterRenderer):
@@ -106,16 +107,16 @@ class NumericParameterRenderer(ParameterRenderer, ABC):
 	def _renderScalarSql(self, index: int) -> SQL:
 		return self._renderIndex(index + self.paramNumberFrom)
 
-	def render(self, paramKey: str, parameters: Parameters) -> SQL:
-		key = id(parameters) ^ hash(paramKey)
+	def render(self, param: ParameterPlaceholder) -> SQL:
+		key = id(param.parameters) ^ hash(param.key)
 
 		if key in self.renderedKeys:
 			preRendered = self.renderedKeys[key]
 			return preRendered
 		else:
-			param = super().render(paramKey, parameters)
-			self.renderedKeys = {**self.renderedKeys, key: param}
-			return param
+			sql = super().render(param)
+			self.renderedKeys = {**self.renderedKeys, key: sql}
+			return sql
 
 
 class ColonNumeric(NumericParameterRenderer):
