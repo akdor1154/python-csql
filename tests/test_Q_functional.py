@@ -99,3 +99,10 @@ def test_default_dialect():
 
 	assert r.sql == 'select 1 where val = ?'
 	assert r.parameters == ['abc']
+
+def test_preview_pd():
+	import sqlite3
+	con = sqlite3.connect(':memory:')
+
+	base = Q("select 1 from ( values (1, 2, 3 ) )")
+	assert base.preview_pd(con) is not None

@@ -28,6 +28,7 @@ def assert_never(x: NoReturn) -> NoReturn:
 
 def limit_query(query: 'Query', rows: int, dialect: 'SQLDialect') -> 'Query':
 	from .api import Q
+	from .models.dialect import Limit
 	if dialect.limit is Limit.limit:
 		return Q(f"select * from {query} limit {rows}")
 	elif dialect.limit is Limit.top_n:
