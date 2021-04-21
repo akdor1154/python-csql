@@ -2,10 +2,16 @@ from typing import *
 from .input import strparsing
 from .models.query import Query, Parameters, RenderedQuery
 from .models.dialect import SQLDialect, DefaultDialect
+from .models.overrides import Overrides
 import warnings
 from textwrap import dedent
 
-def Q(sql: Union[str, Callable[[], str]], parameters: Optional[Parameters] = None, dialect: SQLDialect = DefaultDialect) -> Query:
+def Q(
+	sql: Union[str, Callable[[], str]],
+	parameters: Optional[Parameters] = None,
+	dialect: SQLDialect = DefaultDialect,
+	overrides: Optional[Overrides] = None
+) -> Query:
 	if callable(sql):
 		warnings.warn(
 			dedent('''
@@ -31,5 +37,6 @@ def Q(sql: Union[str, Callable[[], str]], parameters: Optional[Parameters] = Non
 
 	return Query(
 		queryParts=queryParts,
-		default_dialect=dialect
+		default_dialect=dialect,
+		default_overrides=overrides
 	)

@@ -12,9 +12,7 @@ from abc import ABC
 ScalarParameterValue = Any
 SQL = NewType('SQL', str)
 
-class ParamList():
-	"""This is designed to be returned and passed directly to your DB API. It acts like a list."""
-
+class ParamList:
 	_params: List[ScalarParameterValue]
 	_keys: Dict[str, List[List[int]]]
 		# key: [
@@ -56,16 +54,16 @@ class ParameterRenderer(ABC):
 		self.renderedParams = ParamList()
 
 	@abc.abstractmethod
-	def _renderScalarSql(self, index: int) -> SQL:
+	def _renderScalarSql(self, index: int, key: Optional[str]) -> SQL:
 		pass
 
-	def _renderScalar(self, paramValue: ScalarParameterValue) -> Tuple[int, SQL]:
+	def _renderScalar(self, paramKey: Optional[str], paramValue: ScalarParameterValue) -> Tuple[int, SQL]:
 		index = self.renderedParams.add(paramValue)
-		return (index, self._renderScalarSql(index))
+		return (index, self._renderScalarSql(index, paramKey))
 
-	def _renderCollection(self, paramValues: Collection[ScalarParameterValue]) -> Tuple[List[int], SQL]:
+	def _renderCollection(self, paramKey: str, paramValues: Collection[ScalarParameterValue]) -> Tuple[List[int], SQL]:
 		_params = [
-			self._renderScalar(paramValue)
+			self._renderScalar(None, paramValue)
 			for paramValue in paramValues
 		]
 		indices = [i for i, sql in _params]
@@ -73,13 +71,16 @@ class ParameterRenderer(ABC):
 
 		return (indices, SQL(f'( {",".join(sql)} )'))
 
+	def renderList(self) -> ParameterList:
+		return self.renderedParams.render()
+
 	def render(self, param: ParameterPlaceholder) -> SQL:
 		paramKey = param.key
 		paramValue = param.value
 		if isinstance(paramValue, CollectionABC) and not isinstance(paramValue, str):
-			indices, sql = self._renderCollection(paramValue)
+			indices, sql = self._renderCollection(paramKey, paramValue)
 		else:
-			index, sql = self._renderScalar(paramValue)
+			index, sql = self._renderScalar(paramKey, paramValue)
 			indices = [index]
 		self.renderedParams.registerKey(paramKey, indices)
 		return sql
@@ -87,7 +88,7 @@ class ParameterRenderer(ABC):
 
 class QMark(ParameterRenderer):
 
-	def _renderScalarSql(self, index: int) -> SQL:
+	def _renderScalarSql(self, index: int, key: Optional[str]) -> SQL:
 		return SQL('?')
 
 class NumericParameterRenderer(ParameterRenderer, ABC):
@@ -104,7 +105,7 @@ class NumericParameterRenderer(ParameterRenderer, ABC):
 	def _renderIndex(self, index: int) -> SQL:
 		pass
 
-	def _renderScalarSql(self, index: int) -> SQL:
+	def _renderScalarSql(self, index: int, key: Optional[str]) -> SQL:
 		return self._renderIndex(index + self.paramNumberFrom)
 
 	def render(self, param: ParameterPlaceholder) -> SQL:

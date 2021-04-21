@@ -85,8 +85,15 @@ where 1 = 1\
 
 
 def test_default_dialect():
+	import dataclasses
+
 	p = Parameters(abc='abc')
-	q1 = Q(f"select 1 where val = {p['abc']}", dialect=DefaultDialect._replace(paramstyle=ParamStyle.qmark))
+	q1 = Q(
+		f"select 1 where val = {p['abc']}",
+		dialect=dataclasses.replace(
+			DefaultDialect, paramstyle=ParamStyle.qmark
+		)
+	)
 
 	r = q1.build()
 

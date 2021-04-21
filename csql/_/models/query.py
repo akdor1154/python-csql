@@ -10,6 +10,7 @@ from collections.abc import Collection as CollectionABC
 
 if TYPE_CHECKING:
 	import pandas as pd
+	from .overrides import Overrides
 
 import sys
 if sys.version_info >= (3, 9):
@@ -110,6 +111,7 @@ class Query(QueryBit, InstanceTracking):
 
 	queryParts: List[Union[str, QueryBit]]
 	default_dialect: SQLDialect
+	default_overrides: Optional['Overrides']
 
 	def _getDeps_(self) -> Iterable["Query"]:
 		queryDeps = (part for part in self.queryParts if isinstance(part, Query))
@@ -120,26 +122,69 @@ class Query(QueryBit, InstanceTracking):
 	def _getDeps(self) -> Iterable["Query"]:
 		return unique(self._getDeps_(), fn=id)
 
-	def build(self, *, dialect: Optional[SQLDialect] = None, newParams: Optional[Dict[str, ScalarParameterValue]] = None) -> RenderedQuery:
+	def build(
+		self, *,
+		dialect: Optional[SQLDialect] = None,
+		newParams: Optional[Dict[str, ScalarParameterValue]] = None,
+		overrides: Optional['Overrides'] = None
+	) -> RenderedQuery:
 		dialect = dialect or self.default_dialect
-		from ..renderer.query import BoringSQLRenderer
-		rendered = BoringSQLRenderer(dialect).render(self)
+		from ..renderer.query import BoringSQLRenderer, QueryRenderer
+		from ..renderer.parameters import ParameterRenderer
+		from .overrides import Overrides
+		overrides = overrides or self.default_overrides or Overrides()
+
+		ParamRenderer = (
+			overrides.paramRenderer
+			if overrides.paramRenderer is not None
+			else ParameterRenderer.get(dialect)
+		)
+		if not issubclass(ParamRenderer, ParameterRenderer):
+			raise ValueError(f'{ParamRenderer} needs to be a subclass of csql.ParameterRenderer')
+		paramRenderer = ParamRenderer()
+
+		QR: Type[QueryRenderer] = (
+			overrides.queryRenderer # type: ignore # mypy bug
+			if overrides.queryRenderer is not None
+			else BoringSQLRenderer
+		)
+		if not issubclass(QR, QueryRenderer):
+			raise ValueError(f'{QueryRenderer} needs to be a subclass of csql.SQLRenderer')
+		queryRenderer = QR(paramRenderer, dialect=dialect)
+		rendered = queryRenderer.render(self)
+
 		return RenderedQuery(
 			sql=rendered.sql,
 			parameters=rendered.parameters.reparameterize(**(newParams or {}))
 		)
 
-	def preview_pd(self, con: Any, rows: int=10) -> "pd.DataFrame":
+	def preview_pd(
+		self, con: Any, rows: int=10,
+		dialect: Optional[SQLDialect] = None,
+		newParams: Optional[Dict[str, ScalarParameterValue]] = None,
+		overrides: Optional['Overrides'] = None
+	) -> "pd.DataFrame":
 		import pandas as pd
 		from csql import Q
-		p = Parameters(rows=rows)
-		previewQ = Q(lambda: f"""select * from {self} limit {p['rows']}""", p)
+		from ..utils import limit_query
+		dialect = dialect or self.default_dialect
+		previewQ = limit_query(self, rows, dialect)
 		return pd.read_sql(**previewQ.pd(), con=con)
 
-	def pd(self, *, dialect: Optional[SQLDialect] = None, newParams: Optional[Dict[str, ScalarParameterValue]] = None) -> Dict[str, Any]:
+	def pd(
+		self, *,
+		dialect: Optional[SQLDialect] = None,
+		newParams: Optional[Dict[str, ScalarParameterValue]] = None,
+		overrides: Optional['Overrides'] = None
+	) -> Dict[str, Any]:
 		return self.build(dialect=dialect, newParams=newParams).pd
 
-	def db(self, *, dialect: Optional[SQLDialect] = None, newParams: Optional[Dict[str, ScalarParameterValue]] = None) -> Tuple[str, ParameterList]:
+	def db(
+		self, *,
+		dialect: Optional[SQLDialect] = None,
+		newParams: Optional[Dict[str, ScalarParameterValue]] = None,
+		overrides: Optional['Overrides'] = None
+	) -> Tuple[str, ParameterList]:
 		return self.build(dialect=dialect, newParams=newParams).db
 
 
