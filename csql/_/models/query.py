@@ -111,6 +111,7 @@ class Query(QueryBit, InstanceTracking):
 
 	queryParts: List[Union[str, QueryBit]]
 	default_dialect: SQLDialect
+	default_overrides: Optional['Overrides']
 
 	def _getDeps_(self) -> Iterable["Query"]:
 		queryDeps = (part for part in self.queryParts if isinstance(part, Query))
@@ -131,7 +132,7 @@ class Query(QueryBit, InstanceTracking):
 		from ..renderer.query import BoringSQLRenderer, SQLRenderer
 		from ..renderer.parameters import ParameterRenderer
 		from .overrides import Overrides
-		overrides = overrides or Overrides()
+		overrides = overrides or self.default_overrides or Overrides()
 
 		ParamRenderer = (
 			overrides.paramRenderer
@@ -143,7 +144,7 @@ class Query(QueryBit, InstanceTracking):
 		paramRenderer = ParamRenderer()
 
 		QueryRenderer: Type[SQLRenderer] = (
-			overrides.queryRenderer
+			overrides.queryRenderer # type: ignore
 			if overrides.queryRenderer is not None
 			else BoringSQLRenderer
 		)

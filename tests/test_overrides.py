@@ -13,9 +13,9 @@ def test_renderer_override():
 	p = Parameters(
 		abc='abc'
 	)
-	q = Q(f"select 1 where abc = {p['abc']}")
+	q = Q(f"select 1 where abc = {p['abc']}", overrides=Overrides(queryRenderer=MySQLRenderer))
 
-	assert q.build(overrides=Overrides(queryRenderer=MySQLRenderer)) == RenderedQuery(
+	assert q.build() == RenderedQuery(
 		sql="hello hello",
 		parameters=PL()
 	)
