@@ -6,6 +6,7 @@ from collections.abc import Collection as CollectionABC
 import functools
 from itertools import chain
 import abc
+import collections
 from abc import ABC
 
 ScalarParameterValue = Any
@@ -15,16 +16,26 @@ class ParamList():
 	"""This is designed to be returned and passed directly to your DB API. It acts like a list."""
 
 	_params: List[ScalarParameterValue]
+	_keys: Dict[str, List[List[int]]]
+		# key: [
+		# 	[1,2,3], # first time it was used
+		# 	[5,6,7], # second time
+		# 	...
+		# ]
 
 	def __init__(self) -> None:
 		self._params = []
+		self._keys = collections.defaultdict(list)
 
 	def add(self, param: ScalarParameterValue) -> int:
 		self._params.append(param)
 		return len(self._params)-1
 
+	def registerKey(self, key: str, indices: List[int]) -> None:
+		self._keys[key].append(indices)
+
 	def render(self) -> ParameterList:
-		return ParameterList(*self._params)
+		return ParameterList(*self._params, keys=dict(self._keys))
 
 class ParameterRenderer(ABC):
 
@@ -48,30 +59,34 @@ class ParameterRenderer(ABC):
 	def _renderScalarSql(self, index: int) -> SQL:
 		pass
 
-	def _renderScalar(self, paramValue: ScalarParameterValue) -> SQL:
+	def _renderScalar(self, paramValue: ScalarParameterValue) -> Tuple[int, SQL]:
 		index = self.renderedParams.add(paramValue)
-		return self._renderScalarSql(index)
+		return (index, self._renderScalarSql(index))
 
-	def _renderCollection(self, paramValues: Collection[ScalarParameterValue]) -> SQL:
+	def _renderCollection(self, paramValues: Collection[ScalarParameterValue]) -> Tuple[List[int], SQL]:
 		_params = [
 			self._renderScalar(paramValue)
 			for paramValue in paramValues
 		]
+		indices = [i for i, sql in _params]
+		sql = [sql for i, sql in _params]
 
-		return SQL(f'( {",".join(_params)} )')
+		return (indices, SQL(f'( {",".join(sql)} )'))
 
 	def render(self, paramKey: str, parameters: Parameters) -> SQL:
 		paramValue = parameters.params[paramKey]
 		if isinstance(paramValue, CollectionABC) and not isinstance(paramValue, str):
-			param = self._renderCollection(paramValue)
+			indices, param = self._renderCollection(paramValue)
 		else:
-			param = self._renderScalar(paramValue)
+			index, param = self._renderScalar(paramValue)
+			indices = [index]
+		self.renderedParams.registerKey(paramKey, indices)
 		return param
 
 
 class QMark(ParameterRenderer):
 
-	def _renderScalarSql(self, paramIndex: int) -> SQL:
+	def _renderScalarSql(self, index: int) -> SQL:
 		return SQL('?')
 
 class NumericParameterRenderer(ParameterRenderer, ABC):
