@@ -121,7 +121,7 @@ class Query(QueryBit, InstanceTracking):
 	def _getDeps(self) -> Iterable["Query"]:
 		return unique(self._getDeps_(), fn=id)
 
-	def build(self, dialect: Optional[SQLDialect] = None, newParams: Optional[Dict[str, ScalarParameterValue]] = None) -> RenderedQuery:
+	def build(self, *, dialect: Optional[SQLDialect] = None, newParams: Optional[Dict[str, ScalarParameterValue]] = None) -> RenderedQuery:
 		dialect = dialect or self.default_dialect
 		from ..renderer.query import BoringSQLRenderer
 		rendered = BoringSQLRenderer(dialect).render(self)
@@ -137,11 +137,11 @@ class Query(QueryBit, InstanceTracking):
 		previewQ = Q(lambda: f"""select * from {self} limit {p['rows']}""", p)
 		return pd.read_sql(**previewQ.pd(), con=con)
 
-	def pd(self) -> Dict[str, Any]:
-		return self.build().pd
+	def pd(self, *, dialect: Optional[SQLDialect] = None, newParams: Optional[Dict[str, ScalarParameterValue]] = None) -> Dict[str, Any]:
+		return self.build(dialect=dialect, newParams=newParams).pd
 
-	def db(self) -> Tuple[str, ParameterList]:
-		return self.build().db
+	def db(self, *, dialect: Optional[SQLDialect] = None, newParams: Optional[Dict[str, ScalarParameterValue]] = None) -> Tuple[str, ParameterList]:
+		return self.build(dialect=dialect, newParams=newParams).db
 
 
 @dataclass
