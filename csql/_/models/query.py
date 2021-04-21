@@ -13,14 +13,14 @@ if TYPE_CHECKING:
 import sys
 if sys.version_info >= (3, 9):
 	import collections.abc
-	Sequence = collections.abc.Sequence
+	_Sequence = collections.abc.Sequence
 else:
-	# imported from typing *
-	pass
+	import typing
+	_Sequence = typing.Sequence
 
 ScalarParameterValue = Any
 
-class ParameterList(Sequence[ScalarParameterValue]):
+class ParameterList(_Sequence[ScalarParameterValue]):
 	"""This is designed to be returned and passed directly to your DB API. It acts like a list."""
 
 	_params: List[ScalarParameterValue]
