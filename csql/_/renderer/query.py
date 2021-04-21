@@ -7,13 +7,11 @@ from ..models.query import Query, ParameterPlaceholder, RenderedQuery, Parameter
 from ..models.dialect import SQLDialect, ParamStyle
 from .parameters import ParameterRenderer, ColonNumeric, DollarNumeric
 
-__all__ = ['RendererdQuery', 'BoringSQLRenderer']
-
 SQLBit = NewType('SQLBit', str)
 
 DepNames = Dict[int, str] # dict of id(query) to query name
 
-class SQLRenderer(abc.ABC):
+class QueryRenderer(abc.ABC):
 	paramRenderer: ParameterRenderer
 	def __init__(self, paramRenderer: ParameterRenderer, dialect: SQLDialect):
 		self.paramRenderer = paramRenderer
@@ -23,7 +21,7 @@ class SQLRenderer(abc.ABC):
 		pass
 
 
-class BoringSQLRenderer(SQLRenderer):
+class BoringSQLRenderer(QueryRenderer):
 	"""Render a Query. I'm crossing my fingers that I never have to handle sql dialects, but if they I do, they will be subclasses of this."""
 
 	def __renderSingleQuery(self, query: Query, depNames: DepNames) -> Generator[SQLBit, None, None]:

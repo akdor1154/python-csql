@@ -1,9 +1,9 @@
-from csql import Q, Query, RenderedQuery, Parameters, ParameterList as PL, SQLRenderer, ParameterRenderer, Overrides
-from csql.dialect import SQLDialect, ParamStyle
-import pytest
+from csql import Q, Query, RenderedQuery, Parameters, ParameterList as PL, Overrides
+from csql.render.param import ParameterRenderer
+from csql.render.query import QueryRenderer
 
 def test_renderer_override():
-	class MySQLRenderer(SQLRenderer):
+	class MySQLRenderer(QueryRenderer):
 		def render(self, query: Query) -> RenderedQuery:
 			return RenderedQuery(
 				sql='hello hello',

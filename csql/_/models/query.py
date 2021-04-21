@@ -129,7 +129,7 @@ class Query(QueryBit, InstanceTracking):
 		overrides: Optional['Overrides'] = None
 	) -> RenderedQuery:
 		dialect = dialect or self.default_dialect
-		from ..renderer.query import BoringSQLRenderer, SQLRenderer
+		from ..renderer.query import BoringSQLRenderer, QueryRenderer
 		from ..renderer.parameters import ParameterRenderer
 		from .overrides import Overrides
 		overrides = overrides or self.default_overrides or Overrides()
@@ -143,14 +143,14 @@ class Query(QueryBit, InstanceTracking):
 			raise ValueError(f'{ParamRenderer} needs to be a subclass of csql.ParameterRenderer')
 		paramRenderer = ParamRenderer()
 
-		QueryRenderer: Type[SQLRenderer] = (
-			overrides.queryRenderer # type: ignore
+		QR: Type[QueryRenderer] = (
+			overrides.queryRenderer # type: ignore # mypy bug
 			if overrides.queryRenderer is not None
 			else BoringSQLRenderer
 		)
-		if not issubclass(QueryRenderer, SQLRenderer):
+		if not issubclass(QR, QueryRenderer):
 			raise ValueError(f'{QueryRenderer} needs to be a subclass of csql.SQLRenderer')
-		queryRenderer = QueryRenderer(paramRenderer, dialect=dialect)
+		queryRenderer = QR(paramRenderer, dialect=dialect)
 		rendered = queryRenderer.render(self)
 
 		return RenderedQuery(
