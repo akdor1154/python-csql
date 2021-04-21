@@ -42,7 +42,7 @@ jobs:
 
       - run:
           name: Install test dependencies
-          command: poetry install
+          command: poetry install -E pandas
 
       - save_cache:
           key: >
