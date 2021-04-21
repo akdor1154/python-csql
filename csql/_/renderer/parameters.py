@@ -1,5 +1,5 @@
 from typing import *
-from ..models.query import Parameters
+from ..models.query import Parameters, ParameterList
 from ..models.dialect import SQLDialect, ParamStyle
 from ..utils import assert_never
 from collections.abc import Collection as CollectionABC
@@ -11,27 +11,24 @@ from abc import ABC
 ScalarParameterValue = Any
 SQL = NewType('SQL', str)
 
-class ParameterList(Iterable[ScalarParameterValue]):
+class ParamList():
 	"""This is designed to be returned and passed directly to your DB API. It acts like a list."""
 
 	_params: List[ScalarParameterValue]
 
-	def __getitem__(self, i: int) -> ScalarParameterValue:
-		return self._params[i]
-
-	def __iter__(self) -> Iterator[ScalarParameterValue]:
-		return iter(self._params)
-
 	def __init__(self) -> None:
 		self._params = []
 
-	def _add(self, param: ScalarParameterValue) -> int:
+	def add(self, param: ScalarParameterValue) -> int:
 		self._params.append(param)
 		return len(self._params)-1
 
+	def render(self) -> ParameterList:
+		return ParameterList(*self._params)
+
 class ParameterRenderer(ABC):
 
-	renderedParams: ParameterList
+	renderedParams: ParamList
 
 	@staticmethod
 	def get(dialect: SQLDialect) -> Type['ParameterRenderer']:
@@ -45,14 +42,14 @@ class ParameterRenderer(ABC):
 			assert_never(dialect.paramstyle)
 
 	def __init__(self) -> None:
-		self.renderedParams = ParameterList()
+		self.renderedParams = ParamList()
 
 	@abc.abstractmethod
 	def _renderScalarSql(self, index: int) -> SQL:
 		pass
 
 	def _renderScalar(self, paramValue: ScalarParameterValue) -> SQL:
-		index = self.renderedParams._add(paramValue)
+		index = self.renderedParams.add(paramValue)
 		return self._renderScalarSql(index)
 
 	def _renderCollection(self, paramValues: Collection[ScalarParameterValue]) -> SQL:

@@ -3,7 +3,7 @@ from textwrap import dedent, indent
 from abc import ABCMeta
 
 from ..utils import Collector
-from ..models.query import Query, ParameterPlaceholder, RenderedQuery
+from ..models.query import Query, ParameterPlaceholder, RenderedQuery, ParameterList
 from ..models.dialect import SQLDialect, ParamStyle
 from .parameters import ParameterRenderer, ColonNumeric, DollarNumeric
 
@@ -86,5 +86,5 @@ f'''\
 
 		return RenderedQuery(
 			sql=fullSql,
-			parameters=list(self.paramRenderer.renderedParams)
+			parameters=self.paramRenderer.renderedParams.render()
 		)

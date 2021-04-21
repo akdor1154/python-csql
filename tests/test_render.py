@@ -1,4 +1,4 @@
-from csql import Q, RenderedQuery, Parameters
+from csql import Q, RenderedQuery, Parameters, ParameterList as PL
 
 p = Parameters(
 	abc='abc',
@@ -16,5 +16,5 @@ def test_render_pd():
 def test_render_db():
 	assert q.db() == (
 		"select 1 where abc = :1 or def in ( :2,:3,:4 )",
-		['abc', 1, 2, 3]
+		PL('abc', 1, 2, 3)
 	)

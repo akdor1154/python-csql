@@ -1,4 +1,4 @@
-from csql import Q, RenderedQuery
+from csql import Q, RenderedQuery, ParameterList as PL
 import pytest
 
 @pytest.mark.filterwarnings("ignore::DeprecationWarning")
@@ -6,7 +6,7 @@ def test_Q_lambda():
 	q = Q(lambda: "select 1")
 	assert q.build() == RenderedQuery(
 		sql="select 1",
-		parameters=[]
+		parameters=PL()
 	)
 
 @pytest.mark.filterwarnings("ignore::DeprecationWarning")

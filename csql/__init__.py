@@ -7,6 +7,7 @@ __all__ = [
 	'Q',
 	'Query',
 	'Parameters',
+	'ParameterList',
 	'ParameterPlaceholder',
 	'RenderedQuery'
 ]

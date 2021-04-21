@@ -1,4 +1,4 @@
-from csql import Q, RenderedQuery, Parameters
+from csql import Q, RenderedQuery, Parameters, ParameterList as PL
 from csql.dialect import SQLDialect, ParamStyle
 
 def test_parameters():
@@ -9,7 +9,7 @@ def test_parameters():
 
 	assert q.build() == RenderedQuery(
 		sql="select 1 where abc = :1",
-		parameters=['abc']
+		parameters=PL('abc')
 	)
 
 def test_parameters_list():
@@ -21,7 +21,7 @@ def test_parameters_list():
 
 	assert q.build() == RenderedQuery(
 		sql="select 1 where abc = :1 or def in ( :2,:3,:4 )",
-		parameters=['abc', 1, 2, 3]
+		parameters=PL('abc', 1, 2, 3)
 	)
 
 def test_parameters_reuse():
@@ -32,7 +32,7 @@ def test_parameters_reuse():
 
 	assert q.build() == RenderedQuery(
 		sql="select 1 where abc = ( :1,:2,:3 ) or def in ( :1,:2,:3 )",
-		parameters=[1, 2, 3]
+		parameters=PL(1, 2, 3)
 	)
 
 def test_parameters_getattr():
@@ -43,7 +43,7 @@ def test_parameters_getattr():
 
 	assert q.build() == RenderedQuery(
 		sql="select 1 where abc = :1",
-		parameters=['abc']
+		parameters=PL('abc')
 	)
 
 def test_parameters_dialect_dollar_numeric():
@@ -54,7 +54,7 @@ def test_parameters_dialect_dollar_numeric():
 	dialect = SQLDialect(paramstyle=ParamStyle.numeric_dollar)
 	assert q.build(dialect) == RenderedQuery(
 		sql="select 1 where abc = $1",
-		parameters=['abc']
+		parameters=PL('abc')
 	)
 
 def test_parameters_dialect_qmark():
@@ -65,7 +65,7 @@ def test_parameters_dialect_qmark():
 	dialect = SQLDialect(paramstyle=ParamStyle.qmark)
 	assert q.build(dialect) == RenderedQuery(
 		sql="select 1 where abc = ?",
-		parameters=['abc']
+		parameters=PL('abc')
 	)
 
 
@@ -78,5 +78,5 @@ def test_parameters_dialect_qmark_reuse():
 	dialect = SQLDialect(paramstyle=ParamStyle.qmark)
 	assert q.build(dialect) == RenderedQuery(
 		sql="select 1 where abc = ( ?,?,? ) or def in ( ?,?,? )",
-		parameters=[1, 2, 3, 1, 2, 3]
+		parameters=PL(1, 2, 3, 1, 2, 3)
 	)

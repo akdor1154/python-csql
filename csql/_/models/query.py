@@ -10,9 +10,39 @@ from .dialect import SQLDialect
 if TYPE_CHECKING:
 	import pandas as pd
 
+ScalarParameterValue = Any
+
+class ParameterList(Sequence[ScalarParameterValue]):
+	"""This is designed to be returned and passed directly to your DB API. It acts like a list."""
+
+	_params: List[ScalarParameterValue]
+
+	def __getitem__(self, i: Any) -> ScalarParameterValue:
+		return self._params[i]
+
+	def __iter__(self) -> Iterator[ScalarParameterValue]:
+		return iter(self._params)
+
+	def __len__(self) -> int:
+		return len(self._params)
+
+	def __init__(self, *params: ScalarParameterValue) -> None:
+		self._params = list(params)
+
+	def __repr__(self) -> str:
+		return f'Params {repr(self._params)}'
+
+	def __eq__(self, other: Any) -> bool:
+		if isinstance(other, ParameterList):
+			return self._params == other._params
+		elif isinstance(other, list): # mainly used so I didn't have to rewrite a bunch of tests.. this may be removed.
+			return self._params == other
+		else:
+			return False
+
 class RenderedQuery(NamedTuple):
 	sql: str
-	parameters: List[Any]
+	parameters: ParameterList
 
 	# utility properties for easy splatting
 	@property
@@ -23,7 +53,7 @@ class RenderedQuery(NamedTuple):
 		)
 
 	@property
-	def db(self) -> Tuple[str, List[Any]]:
+	def db(self) -> Tuple[str, ParameterList]:
 		return (self.sql, self.parameters)
 
 class QueryBit(metaclass=ABCMeta):
@@ -61,7 +91,7 @@ class Query(QueryBit, InstanceTracking):
 	def pd(self) -> Dict[str, Any]:
 		return self.build().pd
 
-	def db(self) -> Tuple[str, List[Any]]:
+	def db(self) -> Tuple[str, ParameterList]:
 		return self.build().db
 
 
