@@ -1,10 +1,10 @@
-from csql import Q, RenderedQuery
+from csql import Q, RenderedQuery, ParameterList as PL
 
 def test_Q_str():
 	q = Q("select 1")
 	assert q.build() == RenderedQuery(
 		sql="select 1",
-		parameters=[]
+		parameters=PL()
 	)
 
 def test_Q_dep():

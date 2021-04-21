@@ -17,6 +17,7 @@ class ParamStyle(enum.Enum):
 	qmark = auto()
 
 class SQLDialect(NamedTuple):
+	"""Represents settings of a SQL Dialect"""
 	paramstyle: ParamStyle
 
 DefaultDialect = SQLDialect(
