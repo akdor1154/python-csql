@@ -73,6 +73,9 @@ class ParameterRenderer(ABC):
 
 		return (indices, SQL(f'( {",".join(sql)} )'))
 
+	def renderList(self) -> ParameterList:
+		return self.renderedParams.render()
+
 	def render(self, param: ParameterPlaceholder) -> SQL:
 		paramKey = param.key
 		paramValue = param.value

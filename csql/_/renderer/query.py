@@ -1,6 +1,6 @@
 from typing import *
 from textwrap import dedent, indent
-from abc import ABCMeta
+import abc
 
 from ..utils import Collector
 from ..models.query import Query, ParameterPlaceholder, RenderedQuery, ParameterList
@@ -13,15 +13,18 @@ SQLBit = NewType('SQLBit', str)
 
 DepNames = Dict[int, str] # dict of id(query) to query name
 
-class BoringSQLRenderer:
-	"""Render a Query. I'm crossing my fingers that I never have to handle sql dialects, but if they I do, they will be subclasses of this."""
-
-	dialect: SQLDialect
+class SQLRenderer(abc.ABC):
 	paramRenderer: ParameterRenderer
-	# "pState" => state for the paramRenderer. atm this is always just an int to track which numeric param we are up to.
-	def __init__(self, dialect: SQLDialect):
-		self.dialect = dialect
-		self.paramRenderer = ParameterRenderer.get(dialect)()
+	def __init__(self, paramRenderer: ParameterRenderer, dialect: SQLDialect):
+		self.paramRenderer = paramRenderer
+
+	@abc.abstractmethod
+	def render(self, query: Query) -> RenderedQuery:
+		pass
+
+
+class BoringSQLRenderer(SQLRenderer):
+	"""Render a Query. I'm crossing my fingers that I never have to handle sql dialects, but if they I do, they will be subclasses of this."""
 
 	def __renderSingleQuery(self, query: Query, depNames: DepNames) -> Generator[SQLBit, None, None]:
 		for part in query.queryParts:
@@ -84,5 +87,5 @@ f'''\
 
 		return RenderedQuery(
 			sql=fullSql,
-			parameters=self.paramRenderer.renderedParams.render()
+			parameters=self.paramRenderer.renderList()
 		)

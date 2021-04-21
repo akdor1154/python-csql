@@ -10,6 +10,7 @@ from collections.abc import Collection as CollectionABC
 
 if TYPE_CHECKING:
 	import pandas as pd
+	from .overrides import Overrides
 
 import sys
 if sys.version_info >= (3, 9):
@@ -120,10 +121,37 @@ class Query(QueryBit, InstanceTracking):
 	def _getDeps(self) -> Iterable["Query"]:
 		return unique(self._getDeps_(), fn=id)
 
-	def build(self, *, dialect: Optional[SQLDialect] = None, newParams: Optional[Dict[str, ScalarParameterValue]] = None) -> RenderedQuery:
+	def build(
+		self, *,
+		dialect: Optional[SQLDialect] = None,
+		newParams: Optional[Dict[str, ScalarParameterValue]] = None,
+		overrides: Optional['Overrides'] = None
+	) -> RenderedQuery:
 		dialect = dialect or self.default_dialect
-		from ..renderer.query import BoringSQLRenderer
-		rendered = BoringSQLRenderer(dialect).render(self)
+		from ..renderer.query import BoringSQLRenderer, SQLRenderer
+		from ..renderer.parameters import ParameterRenderer
+		from .overrides import Overrides
+		overrides = overrides or Overrides()
+
+		ParamRenderer = (
+			overrides.paramRenderer
+			if overrides.paramRenderer is not None
+			else ParameterRenderer.get(dialect)
+		)
+		if not issubclass(ParamRenderer, ParameterRenderer):
+			raise ValueError(f'{ParamRenderer} needs to be a subclass of csql.ParameterRenderer')
+		paramRenderer = ParamRenderer()
+
+		QueryRenderer: Type[SQLRenderer] = (
+			overrides.queryRenderer
+			if overrides.queryRenderer is not None
+			else BoringSQLRenderer
+		)
+		if not issubclass(QueryRenderer, SQLRenderer):
+			raise ValueError(f'{QueryRenderer} needs to be a subclass of csql.SQLRenderer')
+		queryRenderer = QueryRenderer(paramRenderer, dialect=dialect)
+		rendered = queryRenderer.render(self)
+
 		return RenderedQuery(
 			sql=rendered.sql,
 			parameters=rendered.parameters.reparameterize(**(newParams or {}))
