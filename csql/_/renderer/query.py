@@ -9,12 +9,7 @@ from .parameters import ParameterRenderer, ColonNumeric, DollarNumeric
 
 __all__ = ['RendererdQuery', 'BoringSQLRenderer']
 
-
-class QueryPartStr(NamedTuple):
-	str: str
-class QueryPartParam(NamedTuple):
-	value: Any
-QueryPart = Union[QueryPartStr, QueryPartParam]
+SQLBit = NewType('SQLBit', str)
 
 DepNames = Dict[int, str] # dict of id(query) to query name
 
@@ -28,44 +23,31 @@ class BoringSQLRenderer:
 		self.dialect = dialect
 		self.paramRenderer = ParameterRenderer.get(dialect)()
 
-	def __renderSingleQuery(self, query: Query, depNames: DepNames) -> Generator[QueryPart, None, None]:
+	def __renderSingleQuery(self, query: Query, depNames: DepNames) -> Generator[SQLBit, None, None]:
 		for part in query.queryParts:
 			if isinstance(part, str):
-				yield QueryPartStr(
-					part
-				)
+				yield SQLBit(part)
 			elif isinstance(part, Query):
 				#isinstance(part, Query)
 				depName = depNames[id(part)]
-				yield QueryPartStr(
-					depName
-				)
+				yield SQLBit(depName)
 			elif isinstance(part, ParameterPlaceholder):
 				# TODO
 				paramKey = part.key
 
-				sql, values = self.paramRenderer.render(paramKey, query.parameters)
+				sql = self.paramRenderer.render(paramKey, query.parameters)
 
-				yield QueryPartStr(sql)
-				yield from (QueryPartParam(value) for value in values)
+				yield SQLBit(sql)
 
 	class RenderedSingleQuery(NamedTuple):
 		sql: str
 		paramValues: List[Any]
 
-	def _renderSingleQuery(self, query: Query, depNames: DepNames) -> RenderedSingleQuery:
-		queryBits = Collector(self.__renderSingleQuery(query, depNames))
-		strBits: List[str] = []
-		params: List[Any] = []
-		for bit in queryBits:
-			if isinstance(bit, QueryPartStr):
-				strBits.append(bit.str)
-			elif isinstance(bit, QueryPartParam):
-				params.append(bit.value)
+	def _renderSingleQuery(self, query: Query, depNames: DepNames) -> SQLBit:
+		queryBits = self.__renderSingleQuery(query, depNames)
 
-		return self.RenderedSingleQuery(
-			sql="".join(strBits),
-			paramValues=params
+		return SQLBit(
+			"".join(queryBits)
 		)
 
 	def render(self, query: Query) -> RenderedQuery:
@@ -80,32 +62,29 @@ class BoringSQLRenderer:
 			cteParts.append((subName, dep))
 
 		tab = '\t'
-		depSqls: List[str] = []
-		paramValues: List[Any] = []
+		depSqls: List[SQLBit] = []
 		for (depName, dep) in cteParts:
 			renderedDep = self._renderSingleQuery(dep, depNames)
-			dedented = dedent(renderedDep.sql).strip()
-			depSql = (
+			dedented = dedent(renderedDep).strip()
+			depSql = SQLBit(
 f'''\
 {depName} as (
 {indent(dedented, tab)}
 )'''
 )
 			depSqls.append(depSql)
-			paramValues.extend(renderedDep.paramValues)
 
 		cteString = "with\n" + ",\n".join(depSqls)
 
 		renderedSelf = self._renderSingleQuery(query, depNames)
-		paramValues.extend(renderedSelf.paramValues)
 
 		fullSql = (
-			f"{cteString}\n{dedent(renderedSelf.sql).strip()}"
+			f"{cteString}\n{dedent(renderedSelf).strip()}"
 			if len(cteParts) >= 1
-			else renderedSelf.sql
+			else renderedSelf
 		)
 
 		return RenderedQuery(
 			sql=fullSql,
-			parameters=paramValues
+			parameters=list(self.paramRenderer.renderedParams)
 		)

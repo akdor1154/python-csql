@@ -1,7 +1,7 @@
 from typing import *
 from .input import strparsing
-from .models import Query, Parameters, RenderedQuery
-from .dialect import SQLDialect, DefaultDialect
+from .models.query import Query, Parameters, RenderedQuery
+from .models.dialect import SQLDialect, DefaultDialect
 import warnings
 from textwrap import dedent
 
