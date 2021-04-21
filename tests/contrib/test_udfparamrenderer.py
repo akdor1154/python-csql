@@ -1,7 +1,5 @@
 from csql import Q, Query, RenderedQuery, Parameters, ParameterList as PL, Overrides
 from csql.contrib.render.param.UDFParamRenderer import UDFParameterRenderer
-from csql.render.param import ParameterRenderer
-from csql.render.query import QueryRenderer
 
 def test_contrib_param_render_udf() -> None:
 

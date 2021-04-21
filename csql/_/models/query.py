@@ -158,17 +158,33 @@ class Query(QueryBit, InstanceTracking):
 			parameters=rendered.parameters.reparameterize(**(newParams or {}))
 		)
 
-	def preview_pd(self, con: Any, rows: int=10) -> "pd.DataFrame":
+	def preview_pd(
+		self, con: Any, rows: int=10,
+		dialect: Optional[SQLDialect] = None,
+		newParams: Optional[Dict[str, ScalarParameterValue]] = None,
+		overrides: Optional['Overrides'] = None
+	) -> "pd.DataFrame":
 		import pandas as pd
 		from csql import Q
-		p = Parameters(rows=rows)
-		previewQ = Q(lambda: f"""select * from {self} limit {p['rows']}""", p)
+		from ..utils import limit_query
+		dialect = dialect or self.default_dialect
+		previewQ = limit_query(self, rows, dialect)
 		return pd.read_sql(**previewQ.pd(), con=con)
 
-	def pd(self, *, dialect: Optional[SQLDialect] = None, newParams: Optional[Dict[str, ScalarParameterValue]] = None) -> Dict[str, Any]:
+	def pd(
+		self, *,
+		dialect: Optional[SQLDialect] = None,
+		newParams: Optional[Dict[str, ScalarParameterValue]] = None,
+		overrides: Optional['Overrides'] = None
+	) -> Dict[str, Any]:
 		return self.build(dialect=dialect, newParams=newParams).pd
 
-	def db(self, *, dialect: Optional[SQLDialect] = None, newParams: Optional[Dict[str, ScalarParameterValue]] = None) -> Tuple[str, ParameterList]:
+	def db(
+		self, *,
+		dialect: Optional[SQLDialect] = None,
+		newParams: Optional[Dict[str, ScalarParameterValue]] = None,
+		overrides: Optional['Overrides'] = None
+	) -> Tuple[str, ParameterList]:
 		return self.build(dialect=dialect, newParams=newParams).db
 
 
