@@ -10,6 +10,14 @@ from .dialect import SQLDialect
 if TYPE_CHECKING:
 	import pandas as pd
 
+import sys
+if sys.version_info >= (3, 9):
+	import collections.abc
+	Sequence = collections.abc.Sequence
+else:
+	# imported from typing *
+	pass
+
 ScalarParameterValue = Any
 
 class ParameterList(Sequence[ScalarParameterValue]):
