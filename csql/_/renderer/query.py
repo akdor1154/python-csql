@@ -32,10 +32,8 @@ class BoringSQLRenderer:
 				depName = depNames[id(part)]
 				yield SQLBit(depName)
 			elif isinstance(part, ParameterPlaceholder):
-				# TODO
-				paramKey = part.key
 
-				sql = self.paramRenderer.render(paramKey, query.parameters)
+				sql = self.paramRenderer.render(part)
 
 				yield SQLBit(sql)
 

@@ -6,6 +6,7 @@ from textwrap import dedent
 from ..input.strparsing import InstanceTracking
 from weakref import WeakValueDictionary
 from .dialect import SQLDialect
+from collections.abc import Collection as CollectionABC
 
 if TYPE_CHECKING:
 	import pandas as pd
@@ -24,6 +25,7 @@ class ParameterList(_Sequence[ScalarParameterValue]):
 	"""This is designed to be returned and passed directly to your DB API. It acts like a list."""
 
 	_params: List[ScalarParameterValue]
+	_paramKeys: Dict[str, List[List[int]]]
 
 	def __getitem__(self, i: Any) -> ScalarParameterValue:
 		return self._params[i]
@@ -34,8 +36,9 @@ class ParameterList(_Sequence[ScalarParameterValue]):
 	def __len__(self) -> int:
 		return len(self._params)
 
-	def __init__(self, *params: ScalarParameterValue) -> None:
+	def __init__(self, *params: ScalarParameterValue, keys: Dict[str, List[List[int]]] = {}) -> None:
 		self._params = list(params)
+		self._paramKeys = keys
 
 	def __repr__(self) -> str:
 		return f'Params {repr(self._params)}'
@@ -47,6 +50,40 @@ class ParameterList(_Sequence[ScalarParameterValue]):
 			return self._params == other
 		else:
 			return False
+
+	def _reparameterize(self, replacements: Dict[str, Union[Collection[ScalarParameterValue], ScalarParameterValue]]) -> List[ScalarParameterValue]:
+
+		newParams = self._params.copy()
+
+		for key, paramValue in replacements.items():
+			if key not in self._paramKeys:
+				raise Exception(f'Replacement param {key} is not in the original query. You might mean one of {",".join(self._paramKeys)}')
+
+			instances = self._paramKeys[key]
+
+			for indices in instances:
+				paramValue = replacements[key]
+				if not isinstance(paramValue, CollectionABC) or isinstance(paramValue, str):
+					paramValue = [paramValue]
+
+				if len(paramValue) != len(indices):
+					origValues = [
+						self._params[i] for i in indices
+					]
+					raise ValueError(
+						'Replacing collections is only OK if the replacement is the same length as the original.\n'
+						f'You attempted to replace {repr(key)} = {repr(origValues)} (length {len(indices)}) with {repr(paramValue)} (length {len(paramValue)})'
+					)
+				for i, replacement in zip(indices, paramValue):
+					newParams[i] = replacement
+
+		return newParams
+
+	def reparameterize(self, **replacements: ScalarParameterValue) -> 'ParameterList':
+		return ParameterList(
+			*self._reparameterize(replacements),
+			keys=self._paramKeys
+		)
 
 class RenderedQuery(NamedTuple):
 	sql: str
@@ -72,7 +109,6 @@ class QueryBit(metaclass=ABCMeta):
 class Query(QueryBit, InstanceTracking):
 
 	queryParts: List[Union[str, QueryBit]]
-	parameters: "Parameters"
 	default_dialect: SQLDialect
 
 	def _getDeps_(self) -> Iterable["Query"]:
@@ -84,10 +120,14 @@ class Query(QueryBit, InstanceTracking):
 	def _getDeps(self) -> Iterable["Query"]:
 		return unique(self._getDeps_(), fn=id)
 
-	def build(self, dialect: Optional[SQLDialect] = None) -> RenderedQuery:
+	def build(self, *, dialect: Optional[SQLDialect] = None, newParams: Optional[Dict[str, ScalarParameterValue]] = None) -> RenderedQuery:
 		dialect = dialect or self.default_dialect
 		from ..renderer.query import BoringSQLRenderer
-		return BoringSQLRenderer(dialect).render(self)
+		rendered = BoringSQLRenderer(dialect).render(self)
+		return RenderedQuery(
+			sql=rendered.sql,
+			parameters=rendered.parameters.reparameterize(**(newParams or {}))
+		)
 
 	def preview_pd(self, con: Any, rows: int=10) -> "pd.DataFrame":
 		import pandas as pd
@@ -96,17 +136,18 @@ class Query(QueryBit, InstanceTracking):
 		previewQ = Q(lambda: f"""select * from {self} limit {p['rows']}""", p)
 		return pd.read_sql(**previewQ.pd(), con=con)
 
-	def pd(self) -> Dict[str, Any]:
-		return self.build().pd
+	def pd(self, *, dialect: Optional[SQLDialect] = None, newParams: Optional[Dict[str, ScalarParameterValue]] = None) -> Dict[str, Any]:
+		return self.build(dialect=dialect, newParams=newParams).pd
 
-	def db(self) -> Tuple[str, ParameterList]:
-		return self.build().db
+	def db(self, *, dialect: Optional[SQLDialect] = None, newParams: Optional[Dict[str, ScalarParameterValue]] = None) -> Tuple[str, ParameterList]:
+		return self.build(dialect=dialect, newParams=newParams).db
 
 
 @dataclass
 class ParameterPlaceholder(QueryBit, InstanceTracking):
 	key: str
-
+	value: Any
+	parameters: 'Parameters'
 
 
 class Parameters:
@@ -117,8 +158,8 @@ class Parameters:
 
 	def __getitem__(self, key: str) -> ParameterPlaceholder:
 		paramVal = self.params[key] # check existence
-		return ParameterPlaceholder(key=key)
+		return ParameterPlaceholder(key=key, value=paramVal, parameters=self)
 
 	def __getattr__(self, key: str) -> ParameterPlaceholder:
 		paramVal = self.params[key] # check existence
-		return ParameterPlaceholder(key=key)
+		return ParameterPlaceholder(key=key, value=paramVal, parameters=self)

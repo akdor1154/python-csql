@@ -4,7 +4,7 @@ p = Parameters(
 	abc='abc',
 	list=[1, 2, 3]
 )
-q = Q(f"select 1 where abc = {p['abc']} or def in {p['list']}", p)
+q = Q(f"select 1 where abc = {p['abc']} or def in {p['list']}")
 
 
 def test_render_pd():
