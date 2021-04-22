@@ -22,7 +22,7 @@ else:
 
 ScalarParameterValue = Any
 
-class ParameterList(_Sequence[ScalarParameterValue]):
+class ParameterList(List[ScalarParameterValue]):
 	"""This is designed to be returned and passed directly to your DB API. It acts like a list."""
 
 	_params: List[ScalarParameterValue]
