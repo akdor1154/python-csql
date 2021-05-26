@@ -7,6 +7,7 @@ from ..input.strparsing import InstanceTracking
 from weakref import WeakValueDictionary
 from .dialect import SQLDialect
 from collections.abc import Collection as CollectionABC
+import itertools
 
 if TYPE_CHECKING:
 	import pandas as pd
@@ -194,12 +195,49 @@ class ParameterPlaceholder(QueryBit, InstanceTracking):
 	value: Any
 	parameters: 'Parameters'
 
+NOVALUE = '_csql_novalue'
 
 class Parameters:
 	params: Dict[str, Any]
 
 	def __init__(self, **kwargs: Any):
 		self.params = kwargs
+
+	def _add(self, key: str, val: Any) -> ParameterPlaceholder:
+		if key in self.params:
+			raise ValueError(f'Refusing to add {key}: it is already in this set of Parameters (with value {self.params[key]}).')
+		self.params[key] = val
+		return self[key]
+
+	def add(self, _value: Optional[Any]=NOVALUE, **kwargs: Any) -> ParameterPlaceholder:
+		'''
+		Adds a single parameter into this Parameters, and returns it.
+		Useful in loops.
+		```
+			p = Parameters()
+			query = Q(f\'''
+				select
+					thing
+				from table
+				where
+					val = {p.add('boo')}
+					or val = {p.add('bah')}
+			\''')
+		```
+		'''
+		passed_arg = (_value is not NOVALUE)
+		passed_kw = (len(kwargs) == 1)
+		if not (passed_arg ^ passed_kw):
+			raise ValueError('You need to call either add(val) or add(key=val)')
+		if passed_arg:
+			generate_keys = (f'_add_{i}' for i in itertools.count())
+			key = next(k for k in generate_keys if k not in self.params)
+			return self._add(key, _value)
+		elif passed_kw:
+			[(key, val)] = kwargs.items()
+			return self._add(key, val)
+		raise RuntimeError('Uh oh, csql bug. Please report.')
+
 
 	def __getitem__(self, key: str) -> ParameterPlaceholder:
 		paramVal = self.params[key] # check existence

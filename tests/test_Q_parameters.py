@@ -86,3 +86,70 @@ def test_parameters_dialect_qmark_reuse():
 def test_parameters_deprecation():
 	with pytest.warns(DeprecationWarning):
 		q = Q(lambda: "select 1", Parameters())
+
+def test_parameters_add_simple():
+	p = Parameters()
+
+	q = Q(f"select {p.add(1)}, {p.add(2)}")
+
+	assert q.build() == RenderedQuery(
+		sql = "select :1, :2",
+		parameters=PL(1, 2)
+	)
+
+def test_parameters_add_to_existing():
+	p = Parameters(existing='abc')
+
+	q = Q(f"select {p.add(1)}, {p.add(2)} where abc = {p['existing']}")
+
+	assert q.build() == RenderedQuery(
+		sql = "select :1, :2 where abc = :3",
+		parameters=PL(1, 2, 'abc')
+	)
+
+def test_parameters_add_to_existing_qmark():
+	p = Parameters(existing='abc')
+
+	q = Q(f"select {p.add(1)}, {p.add(2)} where abc = {p['existing']}")
+
+	dialect = SQLDialect(paramstyle=ParamStyle.qmark)
+	assert q.build(dialect=dialect) == RenderedQuery(
+		sql = "select ?, ? where abc = ?",
+		parameters=PL(1, 2, 'abc')
+	)
+
+def test_parameters_add_key():
+	p = Parameters(existing='abc')
+
+	q = Q(f"select {p.add(one=1)}, {p.add(two=2)} where abc = {p['existing']}")
+
+	assert q.build() == RenderedQuery(
+		sql = "select :1, :2 where abc = :3",
+		parameters=PL(1, 2, 'abc')
+	)
+
+	assert q.build(newParams={'one': 'one'}) == RenderedQuery(
+		sql = "select :1, :2 where abc = :3",
+		parameters=PL('one', 2, 'abc')
+	)
+
+
+
+def test_parameters_add_nothing():
+	p = Parameters(existing='abc')
+
+	with pytest.raises(ValueError):
+		p.add()
+
+def test_parameters_add_arg_and_kw():
+	p = Parameters(existing='abc')
+
+	with pytest.raises(ValueError):
+		p.add(1, kw='hi')
+
+
+def test_parameters_add_multiple_kw():
+	p = Parameters(existing='abc')
+
+	with pytest.raises(ValueError):
+		p.add(kw1='hi', kw2='hi')
