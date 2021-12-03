@@ -1,12 +1,13 @@
 from typing import *
 from dataclasses import dataclass
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
 from ..utils import unique
 from textwrap import dedent
 from ..input.strparsing import InstanceTracking
 from weakref import WeakValueDictionary
 from .dialect import SQLDialect
 from collections.abc import Collection as CollectionABC
+#from .persisted_query import PersistedQuery
 
 import itertools
 
@@ -108,6 +109,9 @@ class RenderedQuery(NamedTuple):
 class QueryBit(metaclass=ABCMeta):
 	pass
 
+class PreBuild(Protocol):
+	def __call__(newParams: Optional[Dict[str, ScalarParameterValue]]) -> None:
+		pass
 
 @dataclass
 class Query(QueryBit, InstanceTracking):
@@ -115,8 +119,7 @@ class Query(QueryBit, InstanceTracking):
 	queryParts: List[Union[str, QueryBit]]
 	default_dialect: SQLDialect
 	default_overrides: Optional['Overrides']
-
-	mark_persist: bool = False
+	_pre_build: Optional[PreBuild] = lambda p: None
 
 	def _getDeps_(self) -> Iterable["Query"]:
 		queryDeps = (part for part in self.queryParts if isinstance(part, Query))
@@ -127,17 +130,27 @@ class Query(QueryBit, InstanceTracking):
 	def _getDeps(self) -> Iterable["Query"]:
 		return unique(self._getDeps_(), fn=id)
 
+	def _do_pre_build(self, newParams: Optional[Dict[str, ScalarParameterValue]]) -> None:
+		# runs pre-build of me and all my deps.
+		for dep in self._getDeps():
+			if dep._pre_build is None:
+				continue
+			dep._pre_build(newParams)
+		if self._pre_build is not None:
+			self._pre_build(newParams)
+
 	def build(
 		self, *,
 		dialect: Optional[SQLDialect] = None,
 		newParams: Optional[Dict[str, ScalarParameterValue]] = None,
 		overrides: Optional['Overrides'] = None,
-		with_cacher: Optional['Cacher'] = None,
 	) -> RenderedQuery:
 		dialect = dialect or self.default_dialect
 		from ..renderer.query import BoringSQLRenderer, QueryRenderer
 		from ..renderer.parameters import ParameterRenderer
 		from .overrides import Overrides
+		#from ..cacher.cacher import replacer as cache_replacer
+
 		overrides = overrides or self.default_overrides or Overrides()
 
 		ParamRenderer = (
@@ -158,17 +171,21 @@ class Query(QueryBit, InstanceTracking):
 			raise ValueError(f'{QueryRenderer} needs to be a subclass of csql.SQLRenderer')
 		queryRenderer = QR(paramRenderer, dialect=dialect)
 
-		if with_cacher is not None:
-			query = with_cacher.process(self)
-		else:
-			query = self
+		new_self = self
+		if newParams is not None:
+			new_self = _replace_stuff(_params_replacer(newParams), new_self)
+		#new_self = _replace_stuff(cache_replacer(queryRenderer))
+		new_self._do_pre_build(newParams)
 
-		rendered = queryRenderer.render(query)
+		rendered = queryRenderer.render(new_self)
 
 		return RenderedQuery(
 			sql=rendered.sql,
-			parameters=rendered.parameters.reparameterize(**(newParams or {}))
+			parameters=rendered.parameters
 		)
+
+	def persist(self, cacher: 'Cacher') -> 'Query':
+		return cacher.persist(self)
 
 	def preview_pd(
 		self, con: Any, rows: int=10,
@@ -199,6 +216,60 @@ class Query(QueryBit, InstanceTracking):
 	) -> Tuple[str, ParameterList]:
 		return self.build(dialect=dialect, newParams=newParams).db
 
+def _replace_stuff(fn: Callable[[QueryBit], QueryBit], q: Query):
+	"""Replace every q in a tree with fn(q), beginning with the leaves."""
+	import functools
+
+	def cache_with(key):
+		def decorator(fn):
+			_cache = {}
+			@functools.wraps(fn)
+			def wrapped(arg):
+				k = key(arg)
+				if k not in _cache:
+					_cache[k] = fn(arg)
+				return _cache[k]
+			return wrapped
+		return decorator
+		
+	@cache_with(key=lambda q: id(q))
+	def rewrite_query(q: Query) -> Query:
+
+		def replacer(q: QueryBit) -> QueryBit:
+			if isinstance(q, Query):
+				return rewrite_query(q)
+			else:
+				return q
+
+		new_q = _replace_parts(replacer, q)
+
+		return fn(new_q)
+
+	return rewrite_query(q)
+
+def _replace_parts(fn: Callable[[QueryBit], QueryBit], q: Query):
+	"""Replaces every bit in q with fn(bit). If the result is the same, q is returned unchanged."""
+	new_parts = [fn(part) for part in q.queryParts]
+	if new_parts == q.queryParts:
+		return q
+	else:
+		return Query(
+			queryParts=new_parts,
+			default_dialect=q.default_dialect,
+			default_overrides=q.default_overrides
+		)
+
+def _params_replacer(newParams):
+	def part_replacer(p: QueryBit):
+		if (isinstance(p, ParameterPlaceholder) and p.key in newParams):
+			return ParameterPlaceholder(key=p.key, value=newParams[p.key], parameters=None)
+		else:
+			return p
+
+	def query_replacer(q: Query) -> Query:
+		return _replace_parts(part_replacer, q)
+
+	return query_replacer
 
 @dataclass
 class ParameterPlaceholder(QueryBit, InstanceTracking):

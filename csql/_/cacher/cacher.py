@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING
 from ..models.query import Query, QueryBit
+#from ..models.persisted_query import PersistedQuery
 from csql import Q
 from abc import ABC, abstractmethod
 from functools import cache
@@ -10,6 +11,17 @@ class ProcessResult(NamedTuple):
     processed_query: Query
 
 class Cacher(ABC):
+
+    def persist(self, q: Query) -> Query:
+        retrieve_q = self._persist(q)
+        return PersistedQuery(
+            q,
+            self
+        )
+
+    @abstractmethod
+    def _persist(self, q: Query):
+        pass
 
     @abstractmethod
     def maybe_cache_part(q: Query) -> Optional[Tuple[str, Query]]:
@@ -58,6 +70,7 @@ class Cacher(ABC):
         return pre_sql, rewrite_query(q)
 
 
+
 class TempTableCacher(Cacher):
     def __init__(self, connection):
         self.con = connection
@@ -66,9 +79,8 @@ class TempTableCacher(Cacher):
         sql, params = q.build()
         return sql, params, hash(sql, *params)
 
-    def maybe_cache_part(self, q: Query) -> Optional[ProcessResult]:
-        if not q.mark_persist:
-            return None
+
+    def _persist(self, q: Query):
 
         sql, params, key = self._get_key(q)
 
@@ -84,8 +96,10 @@ class TempTableCacher(Cacher):
         )
 
         retrieve_sql = Q(f'''select * from {table_name}''')
+
+        self.con.cursor().insuert...
         
-        return (create_sql, retrieve_sql)
+        # return (create_sql, retrieve_sql)
 
 
 
