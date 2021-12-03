@@ -1,0 +1,56 @@
+from csql import Q, Query
+from csql._.models.query import _replace_stuff
+from textwrap import dedent
+
+
+def test_replace_identity():
+
+	q1 = Q(f'select 1 from root')
+	q2 = Q(f'select count(*) from {q1}')
+
+	q2_built = q2.build()
+
+	q2_2 = _replace_stuff(lambda q: q, q2)
+	
+	assert q2_2 == q2
+	assert q2_2 is q2
+
+	q2_2_built = q2_2.build
+	assert q2_2.build() == q2_built
+
+
+def test_replace_simple():
+
+	q1 = Q(f'select 1 from root')
+	q2 = Q(f'select count(*) from {q1} as q1')
+	q3 = Q(f'select * from {q2} q2 join {q1} q1')
+
+	q2_built = q3.build()
+
+	i = 0
+
+	def replacer(q: Query):
+		nonlocal i
+		i = i + 1
+		return Query(
+			queryParts=q.queryParts + [f'\n -- replaced {i}\n'],
+			default_dialect=q.default_dialect,
+			default_overrides=q.default_overrides
+		)
+
+	replaced = _replace_stuff(replacer, q3)
+	r = replaced.build()
+	
+	assert r.sql == dedent('''
+		with
+		_subQuery0 as (
+			select 1 from root
+			 -- replaced 1
+		),
+		_subQuery1 as (
+			select count(*) from _subQuery0 as q1
+			 -- replaced 2
+		)
+		select * from _subQuery1 q2 join _subQuery0 q1
+		 -- replaced 3
+	''').strip()
