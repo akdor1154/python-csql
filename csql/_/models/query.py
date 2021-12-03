@@ -7,11 +7,13 @@ from ..input.strparsing import InstanceTracking
 from weakref import WeakValueDictionary
 from .dialect import SQLDialect
 from collections.abc import Collection as CollectionABC
+
 import itertools
 
 if TYPE_CHECKING:
 	import pandas as pd
 	from .overrides import Overrides
+	from ..cacher.cacher import Cacher
 
 import sys
 if sys.version_info >= (3, 9):
@@ -114,6 +116,8 @@ class Query(QueryBit, InstanceTracking):
 	default_dialect: SQLDialect
 	default_overrides: Optional['Overrides']
 
+	mark_persist: bool = False
+
 	def _getDeps_(self) -> Iterable["Query"]:
 		queryDeps = (part for part in self.queryParts if isinstance(part, Query))
 		for dep in queryDeps:
@@ -127,7 +131,8 @@ class Query(QueryBit, InstanceTracking):
 		self, *,
 		dialect: Optional[SQLDialect] = None,
 		newParams: Optional[Dict[str, ScalarParameterValue]] = None,
-		overrides: Optional['Overrides'] = None
+		overrides: Optional['Overrides'] = None,
+		with_cacher: Optional['Cacher'] = None,
 	) -> RenderedQuery:
 		dialect = dialect or self.default_dialect
 		from ..renderer.query import BoringSQLRenderer, QueryRenderer
@@ -152,7 +157,13 @@ class Query(QueryBit, InstanceTracking):
 		if not issubclass(QR, QueryRenderer):
 			raise ValueError(f'{QueryRenderer} needs to be a subclass of csql.SQLRenderer')
 		queryRenderer = QR(paramRenderer, dialect=dialect)
-		rendered = queryRenderer.render(self)
+
+		if with_cacher is not None:
+			query = with_cacher.process(self)
+		else:
+			query = self
+
+		rendered = queryRenderer.render(query)
 
 		return RenderedQuery(
 			sql=rendered.sql,
