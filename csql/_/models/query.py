@@ -109,6 +109,7 @@ class RenderedQuery(NamedTuple):
 class QueryBit(metaclass=ABCMeta):
 	pass
 
+
 class PreBuild(Protocol):
 	def __call__(newParams: Optional[Dict[str, ScalarParameterValue]]) -> None:
 		pass
@@ -119,7 +120,7 @@ class Query(QueryBit, InstanceTracking):
 	queryParts: List[Union[str, QueryBit]]
 	default_dialect: SQLDialect
 	default_overrides: Optional['Overrides']
-	_pre_build: Optional[PreBuild] = lambda p: None
+	_pre_build: Optional[PreBuild] = lambda: None
 
 	def _getDeps_(self) -> Iterable["Query"]:
 		queryDeps = (part for part in self.queryParts if isinstance(part, Query))
@@ -130,14 +131,12 @@ class Query(QueryBit, InstanceTracking):
 	def _getDeps(self) -> Iterable["Query"]:
 		return unique(self._getDeps_(), fn=id)
 
-	def _do_pre_build(self, newParams: Optional[Dict[str, ScalarParameterValue]]) -> None:
+	def _do_pre_build(self) -> None:
 		# runs pre-build of me and all my deps.
-		for dep in self._getDeps():
+		for dep in itertools.chain(self._getDeps(), [self]):
 			if dep._pre_build is None:
 				continue
-			dep._pre_build(newParams)
-		if self._pre_build is not None:
-			self._pre_build(newParams)
+			dep._pre_build()
 
 	def build(
 		self, *,
@@ -175,7 +174,7 @@ class Query(QueryBit, InstanceTracking):
 		if newParams is not None:
 			new_self = _replace_stuff(_params_replacer(newParams), new_self)
 		#new_self = _replace_stuff(cache_replacer(queryRenderer))
-		new_self._do_pre_build(newParams)
+		new_self._do_pre_build()
 
 		rendered = queryRenderer.render(new_self)
 
