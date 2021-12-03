@@ -103,14 +103,14 @@ def test_parameters_reparameterization_collection_reuse_qmark():
 	assert built.parameters == PL('A','B','C')
 
 
-def test_parameters_reparameterization_collection_bad_length():
+def test_parameters_reparameterization_collection_new_length():
 	p = Parameters(
 		abckey=['a','b','c'],
 	)
 	q = Q(f"select 1 where abc in {p['abckey']} or abc in {p['abckey']}")
 	dialect = SQLDialect(paramstyle=ParamStyle.numeric)
 
-	with pytest.raises(ValueError) as e:
-		built = q.build(dialect=dialect, newParams={'abckey': ['A','B']})
-	assert "You attempted to replace 'abckey' = ['a', 'b', 'c'] (length 3)" in str(e.value)
-	assert "with ['A', 'B'] (length 2)" in str(e.value)
+	built = q.build(dialect=dialect, newParams={'abckey': ['A','B']})
+
+	assert built.sql == 'select 1 where abc in ( :1,:2 ) or abc in ( :1,:2 )'
+	assert built.parameters == PL('A', 'B')
