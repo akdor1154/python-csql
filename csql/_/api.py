@@ -12,6 +12,7 @@ def Q(
 	dialect: SQLDialect = DefaultDialect,
 	overrides: Optional[Overrides] = None
 ) -> Query:
+	""" Make a Query. hi """
 	if callable(sql):
 		warnings.warn(
 			dedent('''
@@ -38,5 +39,6 @@ def Q(
 	return Query(
 		queryParts=queryParts,
 		default_dialect=dialect,
-		default_overrides=overrides
+		default_overrides=overrides,
+		extensions=set()
 	)
