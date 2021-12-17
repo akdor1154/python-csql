@@ -1,5 +1,5 @@
 from csql import Q, Query
-from csql._.models.query import _replace_stuff
+from csql._.models.query import ParameterList, ParameterPlaceholder, Parameters, QueryBit, _replace_stuff
 from textwrap import dedent
 
 
@@ -29,13 +29,14 @@ def test_replace_simple():
 
 	i = 0
 
-	def replacer(q: Query):
+	def replacer(q: Query) -> Query:
 		nonlocal i
 		i = i + 1
 		return Query(
 			queryParts=q.queryParts + [f'\n -- replaced {i}\n'],
 			default_dialect=q.default_dialect,
-			default_overrides=q.default_overrides
+			default_overrides=q.default_overrides,
+			extensions=q.extensions
 		)
 
 	replaced = _replace_stuff(replacer, q3)
@@ -54,3 +55,28 @@ def test_replace_simple():
 		select * from _subQuery1 q2 join _subQuery0 q1
 		 -- replaced 3
 	''').strip()
+
+def test_replace_modify_params():
+	# todo:
+	# test replacing all params with str injection works.
+	from csql._.models.query import _replace_parts
+	def replacer(q: Query) -> Query:
+		def replace_params(queryBit):
+			if isinstance(queryBit, ParameterPlaceholder):
+				return f"'ZAP'"
+			else:
+				return queryBit
+		return _replace_parts(replace_params, q)
+	
+	p = Parameters(v=1)
+	q1 = Q(f'select 1 from root where v = {p["v"]}')
+
+	q1_replaced = _replace_stuff(replacer, q1)
+
+	q1r = q1.build()
+	assert q1r.sql == 'select 1 from root where v = :1'
+	assert q1r.parameters == ParameterList(1)
+
+	q1rr = q1_replaced.build()
+	assert q1rr.sql == "select 1 from root where v = 'ZAP'"
+	assert q1rr.parameters == ParameterList()

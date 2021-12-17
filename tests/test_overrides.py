@@ -4,7 +4,7 @@ from csql.render.query import QueryRenderer
 
 def test_renderer_override():
 	class MySQLRenderer(QueryRenderer):
-		def render(self, query: Query) -> RenderedQuery:
+		def _render(self, query: Query) -> RenderedQuery:
 			return RenderedQuery(
 				sql='hello hello',
 				parameters=self.paramRenderer.renderList()

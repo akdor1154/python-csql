@@ -12,12 +12,24 @@ SQLBit = NewType('SQLBit', str)
 DepNames = Dict[int, str] # dict of id(query) to query name
 
 class QueryRenderer(abc.ABC):
+	ParamRenderer: Type[ParameterRenderer]
+
+	# mutable, replaced every render()
 	paramRenderer: ParameterRenderer
-	def __init__(self, paramRenderer: ParameterRenderer, dialect: SQLDialect):
-		self.paramRenderer = paramRenderer
+
+	def __init__(self, ParamRenderer: Type[ParameterRenderer], dialect: SQLDialect):
+		# param renderer is stateful and should only be used once.
+		# todo: refactor .render into a closure() or something.
+		self.ParamRenderer = ParamRenderer
+
+	def render(self, query: Query) -> RenderedQuery:
+
+		# this guy is only good for a single use...
+		self.paramRenderer = self.ParamRenderer()
+		return self._render(query)
 
 	@abc.abstractmethod
-	def render(self, query: Query) -> RenderedQuery:
+	def _render(self, query: Query) -> RenderedQuery:
 		pass
 
 
@@ -49,8 +61,9 @@ class BoringSQLRenderer(QueryRenderer):
 			"".join(queryBits)
 		)
 
-	def render(self, query: Query) -> RenderedQuery:
+	def _render(self, query: Query) -> RenderedQuery:
 		"""Renders a query and all its dependencies into a CTE expression."""
+
 		cteParts = []
 		depNames = {}
 		i = 0
