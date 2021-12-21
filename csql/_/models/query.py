@@ -125,7 +125,7 @@ class Query(QueryBit, InstanceTracking):
 	queryParts: List[Union[str, QueryBit]]
 	default_dialect: SQLDialect
 	default_overrides: Optional['Overrides']
-	extensions: Set[QueryExtension]
+	extensions: FrozenSet[QueryExtension]
 
 
 	## deps
@@ -144,13 +144,6 @@ class Query(QueryBit, InstanceTracking):
 	def _get_extension(self, t: Type[QE]) -> Optional[QE]:
 		exts = {type(e): e for e in self.extensions} # could memoize this
 		return exts.get(t)
-
-	def _do_pre_build(self) -> None:
-		# runs pre-build of me and all my deps.
-		for dep in itertools.chain(self._getDeps(), [self]):
-			if (preBuild := dep._get_extension(PreBuild)) is None:
-				continue
-			preBuild.hook()
 
 	def build(
 		self, *,
@@ -186,7 +179,7 @@ class Query(QueryBit, InstanceTracking):
 		new_self = self
 		new_self = _replace_stuff(_params_replacer(newParams), new_self)
 		new_self = _replace_stuff(_cache_replacer(queryRenderer), new_self)
-		new_self._do_pre_build()
+		new_self = _replace_stuff(_pre_build_replacer(), new_self)
 
 		queryRenderer = QR(ParamRenderer, dialect=dialect)
 		rendered = queryRenderer.render(new_self)
@@ -294,6 +287,19 @@ def _params_replacer(newParams: Optional[Dict[str, Any]]) -> QueryReplacer:
 	def query_replacer(q: Query) -> Query:
 		return _replace_parts(part_replacer, q)
 
+	return query_replacer
+
+def _pre_build_replacer() -> QueryReplacer:
+	def query_replacer(q: Query) -> Query:
+		if (preBuild := q._get_extension(PreBuild)) is None:
+			return
+		result = preBuild.hook()
+		if result is None:
+			return q
+		elif isinstance(result, Query):
+			return result
+		else:
+			raise Exception(f'prebuild needs to return None or a Query, it returned {repr(result)}!')
 	return query_replacer
 
 @dataclass
