@@ -34,8 +34,8 @@ class Cacher(ABC):
         return q
 
     @abstractmethod
-    def _persist(self, q: Query, qr: QueryRenderer) -> Tuple[Callable[[], None], Query]:
-        """ Returns a function which will save the query, and a new query which will retrieve the saved one. """
+    def _persist(self, q: Query, qr: QueryRenderer) -> Tuple[Callable[[], None], Callable[[], Query]]:
+        """ Returns a function which will save the query, and a function which returns a query that will retrieve the saved one. """
         pass
 
 
@@ -61,7 +61,7 @@ class TempTableCacher(Cacher):
         return decorator
 
 
-    def _persist(self, q: Query, qr: QueryRenderer) -> Tuple[Callable[[], None], Query]:
+    def _persist(self, q: Query, qr: QueryRenderer) -> Tuple[Callable[[], None], Callable[[], Query]]:
 
         (sql, params), key = self._get_key(q, qr)
 
@@ -87,7 +87,11 @@ class TempTableCacher(Cacher):
             finally:
                 c.close()
 
-        return (save_fn, retrieve_sql)
+        def retrieve_fn():
+            assert key in self._saved, 'Has not been saved yet!'
+            return retrieve_sql
+
+        return (save_fn, lambda: retrieve_sql)
         
         # return (create_sql, retrieve_sql)
 
