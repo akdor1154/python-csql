@@ -32,7 +32,8 @@ dp = DP(d)
 #%%
 tab_df = pd.read_excel(
     'melbourne_crime.xlsx',
-    sheet_name='Table 04'
+    sheet_name='Table 04',
+    engine='openpyxl'
 )
 display(tab_df)
 #%%

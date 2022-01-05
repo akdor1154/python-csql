@@ -257,7 +257,9 @@ def _replace_stuff(fn: QueryReplacer, q: Query) -> Query:
 
 		return fn(new_q)
 
-	return rewrite_query(q)
+	result = rewrite_query(q)
+	assert isinstance(result, Query), f'{fn} returned None! Naughty!'
+	return result
 
 def _replace_parts(fn: PartReplacer, q: Query) -> Query:
 	"""Replaces every bit in q with fn(bit). If the result is the same, q is returned unchanged."""
@@ -292,7 +294,7 @@ def _params_replacer(newParams: Optional[Dict[str, Any]]) -> QueryReplacer:
 def _pre_build_replacer() -> QueryReplacer:
 	def query_replacer(q: Query) -> Query:
 		if (preBuild := q._get_extension(PreBuild)) is None:
-			return
+			return q
 		result = preBuild.hook()
 		if result is None:
 			return q
