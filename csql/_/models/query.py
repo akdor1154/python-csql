@@ -125,7 +125,7 @@ class Query(QueryBit, InstanceTracking):
 	queryParts: List[Union[str, QueryBit]]
 	default_dialect: SQLDialect
 	default_overrides: Optional['Overrides']
-	extensions: FrozenSet[QueryExtension]
+	_extensions: FrozenSet[QueryExtension]
 
 
 	## deps
@@ -142,7 +142,7 @@ class Query(QueryBit, InstanceTracking):
 	
 	## extensions
 	def _get_extension(self, t: Type[QE]) -> Optional[QE]:
-		exts = {type(e): e for e in self.extensions} # could memoize this
+		exts = {type(e): e for e in self._extensions} # could memoize this
 		return exts.get(t)
 
 	def build(
@@ -271,7 +271,7 @@ def _replace_parts(fn: PartReplacer, q: Query) -> Query:
 			queryParts=new_parts,
 			default_dialect=q.default_dialect,
 			default_overrides=q.default_overrides,
-			extensions=q.extensions
+			_extensions=q._extensions
 		)
 
 def _params_replacer(newParams: Optional[Dict[str, Any]]) -> QueryReplacer:
