@@ -10,7 +10,7 @@ executors:
       - image: cimg/python:<< parameters.python_docker_tag >>
   publisher:
     docker:
-      - image: cimg/python:3.9
+      - image: cimg/python:3.10
 
 jobs:
   test:
@@ -84,7 +84,7 @@ workflows:
       - test:
           matrix:
             parameters:
-              python_docker_tag: ["3.6", "3.7", "3.8", "3.9"]
+              python_docker_tag: ["3.8", "3.9", "3.10"]
           filters:
             tags:
               only: /^v\d+\.\d+\.\d+.*$/
