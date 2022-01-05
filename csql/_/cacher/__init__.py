@@ -45,7 +45,14 @@ class KeyLookup():
 
             with self.lock:
                 if key not in self.saved:
-                    self.saved[key] = asyncio.ensure_future(c._persist(rq))
+                    loop = asyncio.get_event_loop()
+                    # we have to make our own future here so we can await it multiple times if necessary.
+                    # if we were to put the task from _persist() into saved, we could only await it once.
+                    future = loop.create_future()
+                    self.saved[key] = future
+                    asyncio \
+                        .create_task(c._persist(rq, key)) \
+                        .add_done_callback(lambda t: future.set_result(t.result()))
                 result_future = self.saved[key]
                 
             result = await result_future
@@ -64,7 +71,7 @@ class Cacher(ABC):
         return q
 
     @abstractmethod
-    def _persist(self, rq: RenderedQuery, key: int) -> Query:
+    async def _persist(self, rq: RenderedQuery, key: int) -> Query:
         """ Returns a function which will save the query, and a function which returns a query that will retrieve the saved one. """
         pass
 
