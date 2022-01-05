@@ -36,7 +36,7 @@ def test_replace_simple():
 			queryParts=q.queryParts + [f'\n -- replaced {i}\n'],
 			default_dialect=q.default_dialect,
 			default_overrides=q.default_overrides,
-			extensions=q.extensions
+			_extensions=q._extensions
 		)
 
 	replaced = _replace_stuff(replacer, q3)
