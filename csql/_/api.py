@@ -40,5 +40,5 @@ def Q(
 		queryParts=queryParts,
 		default_dialect=dialect,
 		default_overrides=overrides,
-		extensions=set()
+		_extensions=set()
 	)
