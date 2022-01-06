@@ -31,35 +31,47 @@ def  _cache_replacer(queryRenderer: QueryRenderer) -> QueryReplacer:
 
 class KeyLookup():
 
-    saved: Dict[int, Awaitable[Query]] = {}
+    saved: Dict[int, Query] = {}
     lock = threading.Lock()
 
     def _get_key(self, rq: RenderedQuery) -> int:
         return hash((rq.sql, *rq.parameters))
 
-    def _make_save_fn(self, q: Query, qr: QueryRenderer, c: 'Cacher'):
+    def _make_save_fn(self, q: Query, qr: QueryRenderer, c: 'Cacher') -> Callable[[], Query]:
         rq = qr.render(q)
         key = self._get_key(rq)
 
-        async def wrapped_save_fn() -> Query:
-
+        def wrapped_save_fn() -> Query:
             with self.lock:
                 if key not in self.saved:
-                    loop = asyncio.get_event_loop()
-                    # we have to make our own future here so we can await it multiple times if necessary.
-                    # if we were to put the task from _persist() into saved, we could only await it once.
-                    future = loop.create_future()
-                    self.saved[key] = future
-                    asyncio \
-                        .create_task(c._persist(rq, key)) \
-                        .add_done_callback(lambda t: future.set_result(t.result()))
-                result_future = self.saved[key]
-                
-            result = await result_future
+                    self.saved[key] = asyncio.run(c._persist(rq, key))
+                result = self.saved[key]
+            
+            print(f'{rq.parameters=}')
+            print(f'{key=}')
             print(f'{result=}')
             return result
+            
+        return wrapped_save_fn
+        # async def wrapped_save_fn() -> Query:
 
-        return partial(asyncio.run, wrapped_save_fn())
+        #     with self.lock:
+        #         if key not in self.saved:
+        #             loop = asyncio.get_event_loop()
+        #             # we have to make our own future here so we can await it multiple times if necessary.
+        #             # if we were to put the task from _persist() into saved, we could only await it once.
+        #             future = loop.create_future()
+        #             self.saved[key] = future
+        #             asyncio \
+        #                 .create_task(c._persist(rq, key)) \
+        #                 .add_done_callback(lambda t: future.set_result(t.result()))
+        #         result_future = self.saved[key]
+                
+        #     result = await result_future
+        #     print(f'{result=}')
+        #     return result
+
+        # return lambda: asyncio.run(wrapped_save_fn())
 
 KL = KeyLookup() # singleton
 
