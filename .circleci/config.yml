@@ -36,7 +36,6 @@ jobs:
               v2
               python_artifacts
               << parameters.python_docker_tag >>
-              {{ checksum "pyproject.toml" }}
               {{ checksum "poetry.lock" }}
 
 
@@ -49,7 +48,6 @@ jobs:
               v2
               python_artifacts
               << parameters.python_docker_tag >>
-              {{ checksum "pyproject.toml" }}
               {{ checksum "poetry.lock" }}
           paths:
             - .venv
