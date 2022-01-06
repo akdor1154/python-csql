@@ -5,6 +5,7 @@
     be able to do some fun stuff with it. (everybody wants an ECS implementation in their SQL preprocessor, right?)
   - Implement caching using Extensions/Replacers
   - Refactor reparameterization to use Extensions/Replacers
+  - Drop Python 3.6 and 3.7 support... sorry :( 3.10 added to CI as well.
 ## v0.8.0
   - add parameters.add()
   - fix for preview_pd
