@@ -30,11 +30,11 @@ def limit_query(query: 'Query', rows: int, dialect: 'SQLDialect') -> 'Query':
 	from .api import Q
 	from .models.dialect import Limit
 	if dialect.limit is Limit.limit:
-		query = f"select * from {query} limit {rows}"
+		query_str = f"select * from {query} limit {rows}"
 	elif dialect.limit is Limit.top_n:
-		query = f"select top({rows}) * from {query}"
+		query_str = f"select top({rows}) * from {query}"
 	elif dialect.limit is Limit.ansi:
-		query = f"select * from {query} fetch first {rows} rows only"
+		query_str = f"select * from {query} fetch first {rows} rows only"
 	else:
 		assert_never(dialect.limit)
-	return Q(query)
+	return Q(query_str)
