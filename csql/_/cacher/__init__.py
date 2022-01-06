@@ -28,7 +28,9 @@ def  _cache_replacer(queryRenderer: QueryRenderer) -> QueryReplacer:
     
         # q is persistable.
         save_fn = KL._make_save_fn(q, queryRenderer, p.cacher, p.tag)
-        return q._add_extensions(PreBuild(save_fn))
+        
+        #return q._add_extensions(PreBuild(save_fn))
+        return save_fn()
     return replacer
 
 class KeyLookup():

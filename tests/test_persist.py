@@ -6,6 +6,7 @@ from csql._.cacher import TempTableCacher
 from unittest.mock import Mock, MagicMock
 import re
 import sqlite3
+from typing import *
 
 def test_persist_simple():
 
@@ -86,3 +87,33 @@ def test_persist_tag():
 		q1_built = q1.build() # should execute q1
 		assert 'select * from "csql_cache_q1' in q1_built.sql
 		assert 'a, b, c' not in q1_built.sql
+
+
+def test_persist_chained():
+
+
+	with sqlite3.connect(':memory:') as con:
+		from csql import RenderedQuery
+
+		hooked_saves = {}
+
+		class HookedTempTableCacher(TempTableCacher):
+			async def _persist(self, rq: RenderedQuery, key: int, tag: Optional[str]) -> Query:
+				hooked_saves[tag] = rq
+				return await super()._persist(rq, key, tag)
+		c = HookedTempTableCacher(con)
+
+		q1 = Q(f"select 'q1' as val").persist(c, 'q1')
+		q2 = Q(f"select val || 'q2' as val from {q1}").persist(c, 'q2')
+		q3 = Q(f"select val || 'q3' as val from {q2}").persist(c, 'q3')
+
+
+		q3_built = q3.build() # should execute q1
+
+		assert 'select * from "csql_cache_q3' in q3_built.sql
+		assert 'q1' not in q3_built.sql
+
+		from pprint import pprint
+		pprint(hooked_saves)
+
+		assert 'q1' not in hooked_saves['q3'].sql
