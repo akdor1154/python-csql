@@ -10,6 +10,8 @@ import threading
 import asyncio
 import uuid
 import logging
+import pickle
+import hashlib
 
 logger = logging.getLogger(name=__name__)
 
@@ -38,8 +40,10 @@ class KeyLookup():
     saved: Dict[int, Awaitable[Query]] = {}
     lock = threading.Lock()
 
-    def _get_key(self, rq: RenderedQuery, tag: Optional[str]) -> int:
-        return hash((rq.sql, tag, *rq.parameters))
+    def _get_key(self, rq: RenderedQuery, tag: Optional[str]) -> str:
+        key_long = pickle.dumps((rq.sql, tag, *rq.parameters))
+        key_hash = hashlib.sha1(key_long).hexdigest()
+        return key_hash
 
     def _make_save_fn(self, q: Query, qr: QueryRenderer, c: 'Cacher', tag: Optional[str]) -> Callable[[], Query]:
         rq = qr.render(q)
@@ -91,7 +95,7 @@ class Cacher(ABC):
         return q._add_extensions(Persistable(self, tag))
 
     @abstractmethod
-    async def _persist(self, rq: RenderedQuery, key: int, tag: Optional[str]) -> Query:
+    async def _persist(self, rq: RenderedQuery, key: str, tag: Optional[str]) -> Query:
         """ Returns a function which will save the query, and a function which returns a query that will retrieve the saved one. """
         pass
 
@@ -100,7 +104,7 @@ class TempTableCacher(Cacher):
     def __init__(self, connection: Any):
         self._con = connection
 
-    async def _persist(self, rq: RenderedQuery, key: int, tag: Optional[str]) -> Query:
+    async def _persist(self, rq: RenderedQuery, key: str, tag: Optional[str]) -> Query:
         table_name = f'"csql_cache_{tag}_{key}"'
 
         sql, params = rq
