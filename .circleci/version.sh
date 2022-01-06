@@ -13,10 +13,14 @@ if [ "$HEAD_HASH" != "$MASTER_HASH" ]; then
 	exit 1
 fi
 
+
+${EDITOR:-editor} CHANGELOG.md
+
 poetry version "$1"
 NEW_VERSION=$(poetry version -s)
 
-git add pyproject.toml
+
+git add pyproject.toml CHANGELOG.md
 git commit -m "v${NEW_VERSION}"
 git tag -a "v${NEW_VERSION}" -m "v${NEW_VERSION}"
 
