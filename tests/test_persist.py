@@ -69,3 +69,20 @@ def test_persist_reparameterize():
 
 	assert re.match(r'select \* from "csql_cache_.+"', q1r.sql)
 	assert q1r.parameters == ParameterList()
+
+def test_persist_tag():
+
+	with sqlite3.connect(':memory:') as con:
+
+		c = TempTableCacher(con)
+
+		q1 = Q(f'''
+			with t(a,b,c) as (
+				values (1, 2, 3), (1, 2, 3)
+			)
+			select * from t
+			''').persist(c, 'q1')
+
+		q1_built = q1.build() # should execute q1
+		assert 'select * from "csql_cache_q1' in q1_built.sql
+		assert 'a, b, c' not in q1_built.sql

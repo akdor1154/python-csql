@@ -140,8 +140,8 @@ class Query(QueryBit, InstanceTracking):
 			parameters=rendered.parameters
 		)
 
-	def persist(self, cacher: 'Cacher') -> 'Query':
-		return cacher.persist(self)
+	def persist(self, cacher: 'Cacher', tag: Optional[str] = None) -> 'Query':
+		return cacher.persist(self, tag)
 
 	def preview_pd(
 		self, con: Any, rows: int=10,
