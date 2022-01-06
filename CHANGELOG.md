@@ -1,4 +1,10 @@
-## Unreleased
+## v0.9.0
+  - Queries and Parameters are now immutable. This makes a bunch of stuff simpler for me and avoids a couple of bugs. There are
+    possibly race conditions related to id() usage that are also now all gone, woohoo. This does mean parameter values must be hashable, but there's a check in there to turn any lists/seq etc into a tuple, and I'm not sure what else you'd run into frequently that would hit this.
+  - Implement Extensions and Replacers system - this is considered internal for now but it's quite general purpose, you may
+    be able to do some fun stuff with it. (everybody wants an ECS implementation in their SQL preprocessor, right?)
+  - Implement caching using Extensions/Replacers
+  - Refactor reparameterization to use Extensions/Replacers
 ## v0.8.0
   - add parameters.add()
   - fix for preview_pd
