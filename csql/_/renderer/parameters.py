@@ -14,26 +14,16 @@ SQL = NewType('SQL', str)
 
 class ParamList:
 	_params: List[ScalarParameterValue]
-	_keys: Dict[str, List[List[int]]]
-		# key: [
-		# 	[1,2,3], # first time it was used
-		# 	[5,6,7], # second time
-		# 	...
-		# ]
 
 	def __init__(self) -> None:
 		self._params = []
-		self._keys = collections.defaultdict(list)
 
 	def add(self, param: ScalarParameterValue) -> int:
 		self._params.append(param)
 		return len(self._params)-1
 
-	def registerKey(self, key: str, indices: List[int]) -> None:
-		self._keys[key].append(indices)
-
 	def render(self) -> ParameterList:
-		return ParameterList(*self._params, keys=dict(self._keys))
+		return list(self._params) # todo -> tuple
 
 class ParameterRenderer(ABC):
 
@@ -82,7 +72,6 @@ class ParameterRenderer(ABC):
 		else:
 			index, sql = self._renderScalar(paramKey, paramValue)
 			indices = [index]
-		self.renderedParams.registerKey(paramKey, indices)
 		return sql
 
 
@@ -109,7 +98,7 @@ class NumericParameterRenderer(ParameterRenderer, ABC):
 		return self._renderIndex(index + self.paramNumberFrom)
 
 	def render(self, param: ParameterPlaceholder) -> SQL:
-		key = id(param.parameters) ^ hash(param.key)
+		key = (param._key_context or 0) ^ hash(param.key)
 
 		if key in self.renderedKeys:
 			preRendered = self.renderedKeys[key]
