@@ -21,18 +21,18 @@ class InstanceTracking():
 	formattedInstances: Dict[int, "InstanceTracking"] = dict()
 
 	def __post_init__(self) -> None:
-		InstanceTracking.instances[id(self)] = self
+		InstanceTracking.instances[hash(self)] = self
 
 	def __format__(self, spec: str) -> str:
 		self._hold()
-		return f'〈QueryBit:{id(self)}〉'
+		return f'〈QueryBit:{hash(self)}〉'
 
 	def _hold(self) -> None:
-		InstanceTracking.formattedInstances[id(self)] = self
+		InstanceTracking.formattedInstances[hash(self)] = self
 
 	def _unhold(self) -> None:
-		if id(self) in InstanceTracking.formattedInstances:
-			del InstanceTracking.formattedInstances[id(self)]
+		if hash(self) in InstanceTracking.formattedInstances:
+			del InstanceTracking.formattedInstances[hash(self)]
 
 # problem:
 # intermediate values are GCd before they can be recalled
@@ -48,7 +48,7 @@ class InstanceTracking():
 # -
 
 
-regex = re.compile(r'〈QueryBit:(\d+)〉')
+regex = re.compile(r'〈QueryBit:(-?\d+)〉')
 def _parseInterpolatedString(s: str) -> Iterable[Union[str, "QueryBit"]]:
 	matches = regex.finditer(s)
 	i = 0 # end of last processed match
@@ -67,8 +67,8 @@ def _parseInterpolatedString(s: str) -> Iterable[Union[str, "QueryBit"]]:
 	yield s[i:]
 
 def getQueryParts(s: str) -> List[Union[str, "QueryBit"]]:
-	return [
+	return tuple(
 		bit
 		for bit in _parseInterpolatedString(s)
 		if bit != ""
-	]
+	)

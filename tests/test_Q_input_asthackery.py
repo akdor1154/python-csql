@@ -14,11 +14,11 @@ def test_Q_lambda_dep():
 	q1 = Q("select 1")
 	q2 = Q(lambda: f"select 1 from {q1}")
 
-	assert q1.queryParts == ['select 1']
-	assert q2.queryParts == [
+	assert q1.queryParts == ('select 1',)
+	assert q2.queryParts == (
 		'select 1 from ',
 		q1
-	]
+	)
 
 def test_Q_deprecation():
 	with pytest.warns(DeprecationWarning):
