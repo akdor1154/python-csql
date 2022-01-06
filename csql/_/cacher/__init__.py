@@ -44,12 +44,12 @@ class KeyLookup():
         def wrapped_save_fn() -> Query:
             with self.lock:
                 if key not in self.saved:
+                    logger.debug(f'Executing save function for rendered query {rq}')
                     self.saved[key] = asyncio.run(c._persist(rq, key))
+                else:
+                    logger.debug(f'Using cached result for rendered query {rq}')
                 result = self.saved[key]
             
-            print(f'{rq.parameters=}')
-            print(f'{key=}')
-            print(f'{result=}')
             return result
             
         return wrapped_save_fn
@@ -117,22 +117,22 @@ class TempTableCacher(Cacher):
 
 
 
-class SnowflakeResultSetCacher(Cacher):
-    def __init__(self, connection: 'snowflake.connector.Connection'):
-        self._con = connection
+# class SnowflakeResultSetCacher(Cacher):
+#     def __init__(self, connection: 'snowflake.connector.Connection'):
+#         self._con = connection
 
-    async def _persist(self, rq: RenderedQuery, key: int) -> Query:
+#     async def _persist(self, rq: RenderedQuery, key: int) -> Query:
 
-        sql, params = rq
+#         sql, params = rq
 
-        logger.debug(f'Executing persist SQL:\n{sql}\nwith params: {params}')
-        c = self._con.cursor()
-        try:
-            c.execute(sql, params)
-            qid = c.sfqid
-        finally:
-            c.close()
+#         logger.debug(f'Executing persist SQL:\n{sql}\nwith params: {params}')
+#         c = self._con.cursor()
+#         try:
+#             c.execute(sql, params)
+#             qid = c.sfqid
+#         finally:
+#             c.close()
 
-        retrieve_sql = Q(f'''select * from table(result_scan('{qid}')''')
-        return retrieve_sql
+#         retrieve_sql = Q(f'''select * from table(result_scan('{qid}')''')
+#         return retrieve_sql
 

@@ -66,7 +66,7 @@ def _parseInterpolatedString(s: str) -> Iterable[Union[str, "QueryBit"]]:
 
 	yield s[i:]
 
-def getQueryParts(s: str) -> List[Union[str, "QueryBit"]]:
+def getQueryParts(s: str) -> Tuple[Union[str, "QueryBit"], ...]:
 	return tuple(
 		bit
 		for bit in _parseInterpolatedString(s)
