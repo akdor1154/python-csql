@@ -33,7 +33,7 @@ def test_replace_simple():
 		nonlocal i
 		i = i + 1
 		return Query(
-			queryParts=q.queryParts + [f'\n -- replaced {i}\n'],
+			queryParts=q.queryParts + (f'\n -- replaced {i}\n',),
 			default_dialect=q.default_dialect,
 			default_overrides=q.default_overrides,
 			_extensions=q._extensions

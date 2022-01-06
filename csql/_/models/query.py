@@ -1,3 +1,4 @@
+import dataclasses
 from typing import *
 from dataclasses import dataclass
 from abc import ABCMeta, abstractmethod
@@ -53,16 +54,16 @@ class QueryExtension(metaclass=ABCMeta): pass
 
 QE = TypeVar('QE', bound=QueryExtension) # should be bound=Intersection[QueryExtension, NamedTuple]
 
-@QueryExtension.register
-class PreBuild(NamedTuple):
+@dataclass(frozen=True)
+class PreBuild(QueryExtension):
 	hook: Callable[[], None]
 
 NOVALUE = '_csql_novalue'
 
-@dataclass
+@dataclass(frozen=True)
 class Query(QueryBit, InstanceTracking):
 
-	queryParts: List[Union[str, QueryBit]]
+	queryParts: Tuple[Union[str, QueryBit], ...]
 	default_dialect: SQLDialect
 	default_overrides: Optional['Overrides']
 	_extensions: FrozenSet[QueryExtension]
@@ -83,7 +84,14 @@ class Query(QueryBit, InstanceTracking):
 	## extensions
 	def _get_extension(self, t: Type[QE]) -> Optional[QE]:
 		exts = {type(e): e for e in self._extensions} # could memoize this
-		return exts.get(t)
+		return cast(QE,
+			exts.get(t)
+		) # mypy sucks
+
+	def _add_extensions(self, *e: QueryExtension) -> 'Query':
+		return dataclasses.replace(self, 
+			_extensions=self._extensions | set(e)
+		)
 
 	def build(
 		self, *,
@@ -219,10 +227,11 @@ def _params_replacer(newParams: Optional[Dict[str, Any]]) -> QueryReplacer:
 		return lambda q: q
 	
 	def part_replacer(p: Union[str, QueryBit]) -> Union[str, QueryBit]:
-		assert newParams is not None # make mypy happy
+		_newParams = Parameters(**newParams) # checks if hashable.
 
-		if (isinstance(p, ParameterPlaceholder) and p.key in newParams):
-			return ParameterPlaceholder(key=p.key, value=newParams[p.key], _key_context=None)
+		if (isinstance(p, ParameterPlaceholder) and p.key in _newParams):
+			print(f'replacing {p.key=} with {_newParams[p.key]=}')
+			return _newParams[p.key]
 		else:
 			return p
 
@@ -244,22 +253,33 @@ def _pre_build_replacer() -> QueryReplacer:
 			raise Exception(f'prebuild needs to return None or a Query, it returned {repr(result)}!')
 	return query_replacer
 
-@dataclass
+@dataclass(frozen=True)
 class ParameterPlaceholder(QueryBit, InstanceTracking):
 	key: str
-	value: Any
+	value: Hashable
 	_key_context: Optional[int] # allow people to pass multiple distinct parameters with the same key into a Query.
 
 
 class Parameters:
-	params: Dict[str, Any]
+	params: Dict[str, Hashable]
 
 	def __init__(self, **kwargs: Any):
-		self.params = kwargs
+		self.params = {k: self._check_hashable_value(k, v) for k, v in kwargs.items()}
+
+	@staticmethod
+	def _check_hashable_value(key: str, val: Any) -> Hashable:
+		if isinstance(val, Collection) and not isinstance(val, str):
+			val = tuple(val)
+		try:
+			h = hash(val)
+		except TypeError:
+			raise ValueError(f'Refusing to add {key}:{val} - parameter values need to be hashable.')
+		return val
 
 	def _add(self, key: str, val: Any) -> ParameterPlaceholder:
 		if key in self.params:
 			raise ValueError(f'Refusing to add {key}: it is already in this set of Parameters (with value {self.params[key]}).')
+		val = self._check_hashable_value(key, val)
 		self.params[key] = val
 		return self[key]
 
@@ -292,6 +312,8 @@ class Parameters:
 			return self._add(key, val)
 		raise RuntimeError('Uh oh, csql bug. Please report.')
 
+	def __contains__(self, key: str) -> bool:
+		return self.params.__contains__(key)
 
 	def __getitem__(self, key: str) -> ParameterPlaceholder:
 		paramVal = self.params[key] # check existence
