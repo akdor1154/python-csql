@@ -1,6 +1,7 @@
 import functools
 from typing import TYPE_CHECKING
 from ..models.query import PreBuild, Query, QueryBit, QueryExtension, QueryReplacer, RenderedQuery
+from dataclasses import dataclass
 from ..renderer.query import QueryRenderer
 from csql import Q
 from abc import ABC, abstractmethod
@@ -13,8 +14,8 @@ import logging
 
 logger = logging.getLogger(name=__name__)
 
-@QueryExtension.register
-class Persistable(NamedTuple):
+@dataclass(frozen=True)
+class Persistable(QueryExtension):
     """ Attached directly to a slow query. """
     cacher: 'Cacher'
 
