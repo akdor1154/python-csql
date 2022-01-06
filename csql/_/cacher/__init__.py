@@ -68,7 +68,7 @@ class KeyLookup():
                     self.saved[key] = future
                     task = asyncio.create_task(c._persist(rq, key, tag))
                     
-                    def task_done(t: asyncio.Future[Query]) -> None:
+                    def task_done(t: 'asyncio.Task[Query]') -> None:
                         try:
                             future.set_result(t.result())
                         except Exception as e:
