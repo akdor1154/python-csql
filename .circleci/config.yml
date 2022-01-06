@@ -54,7 +54,7 @@ jobs:
 
       - run:
           name: mypy
-          command: poetry run mypy csql
+          command: poetry run mypy csql tests
 
       - run:
           name: pytest

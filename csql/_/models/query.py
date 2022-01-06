@@ -106,7 +106,8 @@ class Query(QueryBit, InstanceTracking):
 		from ..renderer.query import BoringSQLRenderer, QueryRenderer
 		from ..renderer.parameters import ParameterRenderer
 		from .overrides import Overrides
-		from ..cacher import _cache_replacer
+		from ..cacher import cache_replacer
+		from .query_replacers import replace_queries_in_tree, params_replacer, pre_build_replacer
 
 		overrides = overrides or self.default_overrides or Overrides()
 
@@ -128,9 +129,9 @@ class Query(QueryBit, InstanceTracking):
 		queryRenderer = QR(ParamRenderer, dialect=dialect)
 
 		new_self = self
-		new_self = _replace_stuff(_params_replacer(newParams), new_self)
-		new_self = _replace_stuff(_cache_replacer(queryRenderer), new_self)
-		new_self = _replace_stuff(_pre_build_replacer(), new_self)
+		new_self = replace_queries_in_tree(params_replacer(newParams), new_self)
+		new_self = replace_queries_in_tree(cache_replacer(queryRenderer), new_self)
+		new_self = replace_queries_in_tree(pre_build_replacer(), new_self)
 
 		queryRenderer = QR(ParamRenderer, dialect=dialect)
 		rendered = queryRenderer.render(new_self)
@@ -175,71 +176,6 @@ class Query(QueryBit, InstanceTracking):
 	) -> Tuple[str, TParameterList]:
 		return self.build(dialect=dialect, newParams=newParams, overrides=overrides).db
 
-PartReplacer = Callable[[Union[str, QueryBit]], Union[str, QueryBit]]
-QueryReplacer = Callable[[Query], Query]
-
-def _replace_stuff(fn: QueryReplacer, q: Query) -> Query:
-	"""Replace every q in a tree with fn(q), beginning with the leaves."""
-	import functools
-		
-	@functools.lru_cache(maxsize=None)
-	def rewrite_query(q: Query) -> Query:
-
-		def replacer(q: Union[str, QueryBit]) -> Union[str, QueryBit]:
-			if isinstance(q, Query):
-				return rewrite_query(q)
-			else:
-				return q
-
-		new_q = _replace_parts(replacer, q)
-
-		result = fn(new_q)
-
-		if not isinstance(result, Query):
-			raise TypeError(f'{fn} returned None! fn passed to QueryReplacer needs to always return a Query.')
-		
-		return result
-
-	return rewrite_query(q)
-
-def _replace_parts(fn: PartReplacer, q: Query) -> Query:
-	"""Replaces every bit in q with fn(bit). If the result is the same, q is returned unchanged."""
-	new_parts = tuple(fn(part) for part in q.queryParts)
-	if new_parts == q.queryParts:
-		return q
-	else:
-		return dataclasses.replace(q, queryParts=new_parts)
-
-def _params_replacer(newParams: Optional[Dict[str, Any]]) -> QueryReplacer:
-	if newParams is None:
-		return lambda q: q
-	
-	def part_replacer(p: Union[str, QueryBit]) -> Union[str, QueryBit]:
-		assert newParams is not None # make mypy happy
-		_newParams = Parameters(**newParams) # checks if hashable.
-
-		if (isinstance(p, ParameterPlaceholder) and p.key in _newParams):
-			return _newParams[p.key]
-		else:
-			return p
-
-	def query_replacer(q: Query) -> Query:
-		return _replace_parts(part_replacer, q)
-
-	return query_replacer
-
-def _pre_build_replacer() -> QueryReplacer:
-	def query_replacer(q: Query) -> Query:
-		if (preBuild := q._get_extension(PreBuild)) is None:
-			return q
-		result = preBuild.hook()
-		if result is None:
-			return q
-		elif isinstance(result, Query):
-			return result
-		else:
-			raise Exception(f'prebuild needs to return None or a Query, it returned {repr(result)}!')
-	return query_replacer
 
 @dataclass(frozen=True)
 class ParameterPlaceholder(QueryBit, InstanceTracking):

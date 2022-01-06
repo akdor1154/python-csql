@@ -1,5 +1,6 @@
 from csql import Q, Query
-from csql._.models.query import ParameterList, ParameterPlaceholder, Parameters, QueryBit, _replace_stuff
+from csql._.models.query import ParameterList, ParameterPlaceholder, Parameters, QueryBit
+from csql._.models.query_replacers import replace_queries_in_tree
 from textwrap import dedent
 
 
@@ -10,7 +11,7 @@ def test_replace_identity():
 
 	q2_built = q2.build()
 
-	q2_2 = _replace_stuff(lambda q: q, q2)
+	q2_2 = replace_queries_in_tree(lambda q: q, q2)
 	
 	assert q2_2 == q2
 	assert q2_2 is q2
@@ -39,7 +40,7 @@ def test_replace_simple():
 			_extensions=q._extensions
 		)
 
-	replaced = _replace_stuff(replacer, q3)
+	replaced = replace_queries_in_tree(replacer, q3)
 	r = replaced.build()
 	
 	assert r.sql == dedent('''
@@ -59,19 +60,19 @@ def test_replace_simple():
 def test_replace_modify_params():
 	# todo:
 	# test replacing all params with str injection works.
-	from csql._.models.query import _replace_parts
+	from csql._.models.query_replacers import _replace_query_parts
 	def replacer(q: Query) -> Query:
-		def replace_params(queryBit):
-			if isinstance(queryBit, ParameterPlaceholder):
+		def replace_params(p):
+			if isinstance(p, ParameterPlaceholder):
 				return f"'ZAP'"
 			else:
-				return queryBit
-		return _replace_parts(replace_params, q)
+				return p
+		return _replace_query_parts(replace_params, q)
 	
 	p = Parameters(v=1)
 	q1 = Q(f'select 1 from root where v = {p["v"]}')
 
-	q1_replaced = _replace_stuff(replacer, q1)
+	q1_replaced = replace_queries_in_tree(replacer, q1)
 
 	q1r = q1.build()
 	assert q1r.sql == 'select 1 from root where v = :1'

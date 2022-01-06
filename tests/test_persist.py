@@ -1,8 +1,9 @@
 from csql import Q, Query, Parameters
-from csql._.models.query import ParameterList, _replace_stuff
+from csql._.models.query import ParameterList
 from textwrap import dedent
 
-from csql._.cacher import TempTableCacher
+from csql.contrib.cacher import TempTableCacher, Cacher, Key
+
 from unittest.mock import Mock, MagicMock
 import re
 import sqlite3
@@ -26,7 +27,6 @@ def test_persist_simple():
 		assert 'a, b, c' not in q1_built.sql
 
 def test_persist_params():
-	from csql._.cacher import TempTableCacher
 
 	con = Mock()
 	c = TempTableCacher(con)
@@ -41,7 +41,6 @@ def test_persist_params():
 
 
 def test_persist_reparameterize():
-	from csql._.cacher import TempTableCacher
 
 	with sqlite3.connect(':memory:') as con:
 
@@ -98,7 +97,7 @@ def test_persist_chained():
 		hooked_saves = {}
 
 		class HookedTempTableCacher(TempTableCacher):
-			async def _persist(self, rq: RenderedQuery, key: int, tag: Optional[str]) -> Query:
+			async def _persist(self, rq: RenderedQuery, key: Key, tag: Optional[str]) -> Query:
 				hooked_saves[tag] = rq
 				return await super()._persist(rq, key, tag)
 		c = HookedTempTableCacher(con)
