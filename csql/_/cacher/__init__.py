@@ -64,9 +64,15 @@ class KeyLookup():
                     # if we were to put the task from _persist() into saved, we could only await it once.
                     future = loop.create_future()
                     self.saved[key] = future
-                    asyncio \
-                        .create_task(c._persist(rq, key, tag)) \
-                        .add_done_callback(lambda t: future.set_result(t.result()))
+                    task = asyncio.create_task(c._persist(rq, key, tag))
+                    def task_done(t: asyncio.Task[Query]) -> None:
+                        try:
+                            future.set_result(t.result())
+                        except Exception as e:
+                            future.set_exception(e)
+                    task.add_done_callback(task_done)
+                    
+                        
                 result_future = self.saved[key]
                 
             result = await result_future
