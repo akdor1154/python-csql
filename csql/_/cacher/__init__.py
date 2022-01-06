@@ -72,12 +72,10 @@ class KeyLookup():
                             future.set_exception(e)
                     task.add_done_callback(task_done)
                     
-                        
+                
                 result_future = self.saved[key]
                 
-            result = await result_future
-            print(f'{result=}')
-            return result
+            return await result_future
 
         return lambda: asyncio.run(wrapped_save_fn())
 
