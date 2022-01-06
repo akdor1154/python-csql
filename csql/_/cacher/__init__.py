@@ -25,8 +25,7 @@ def  _cache_replacer(queryRenderer: QueryRenderer) -> QueryReplacer:
     
         # q is persistable.
         save_fn = KL._make_save_fn(q, queryRenderer, p.cacher)
-        q._extensions.add(PreBuild(save_fn))
-        return q
+        return q._add_extensions(PreBuild(save_fn))
     return replacer
 
 class KeyLookup():
@@ -67,8 +66,7 @@ class Cacher(ABC):
 
     def persist(self, q: Query) -> Query:
         """ Marks a query as persistabe. """
-        q._extensions.add(Persistable(self))
-        return q
+        return q._add_extensions(Persistable(self))
 
     @abstractmethod
     async def _persist(self, rq: RenderedQuery, key: int) -> Query:

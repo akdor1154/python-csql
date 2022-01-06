@@ -22,7 +22,7 @@ class Limit(enum.Enum):
 	top_n = auto()
 	ansi = auto()
 
-@dataclass
+@dataclass(frozen=True)
 class SQLDialect:
 	"""
 		Represents settings of a SQL Dialect
@@ -32,7 +32,7 @@ class SQLDialect:
 	paramstyle: ParamStyle = ParamStyle.numeric
 	limit: Limit = Limit.limit
 
-	def __repr__(self):
+	def __repr__(self) -> str:
 		import inspect
 		mod = inspect.getmodule(self)
 		print('!!!')
