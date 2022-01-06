@@ -32,28 +32,29 @@ class SQLDialect:
 	paramstyle: ParamStyle = ParamStyle.numeric
 	limit: Limit = Limit.limit
 
-	def __repr__(self) -> str:
-		import inspect
-		mod = inspect.getmodule(self)
-		print('!!!')
-		if mod is None:
-			print('nomod')
-			return super().__repr__()
-		print('???')
-		name = next(
-			(
-				name
-				for name, obj in vars(mod).items()
-				if obj is self
-			),
-			None
-		)
-		print('!!!!')
-		if name is None:
-			print('nolocal')
-			return super().__repr__()
-		print(f'{name=}')
-		return name
+	# experiments for doc gen
+	# def __repr__(self) -> str:
+	# 	import inspect
+	# 	mod = inspect.getmodule(self)
+	# 	print('!!!')
+	# 	if mod is None:
+	# 		print('nomod')
+	# 		return super().__repr__()
+	# 	print('???')
+	# 	name = next(
+	# 		(
+	# 			name
+	# 			for name, obj in vars(mod).items()
+	# 			if obj is self
+	# 		),
+	# 		None
+	# 	)
+	# 	print('!!!!')
+	# 	if name is None:
+	# 		print('nolocal')
+	# 		return super().__repr__()
+	# 	print(f'{name=}')
+	# 	return name
 
 
 DefaultDialect = SQLDialect(
