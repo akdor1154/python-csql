@@ -1,5 +1,5 @@
 from typing import *
-from ..models.query import Parameters, ParameterList, ParameterPlaceholder
+from ..models.query import Parameters, TParameterList as ParameterList, ParameterPlaceholder
 from ..models.dialect import SQLDialect, ParamStyle
 from ..utils import assert_never
 from collections.abc import Collection as CollectionABC

@@ -54,9 +54,12 @@ class QueryExtension(metaclass=ABCMeta): pass
 
 QE = TypeVar('QE', bound=QueryExtension) # should be bound=Intersection[QueryExtension, NamedTuple]
 
+class PreBuildHook(Protocol):
+	def __call__(self) -> Optional['Query']: ...
+
 @dataclass(frozen=True)
 class PreBuild(QueryExtension):
-	hook: Callable[[], None]
+	hook: PreBuildHook
 
 NOVALUE = '_csql_novalue'
 
@@ -169,7 +172,7 @@ class Query(QueryBit, InstanceTracking):
 		dialect: Optional[SQLDialect] = None,
 		newParams: Optional[Dict[str, ScalarParameterValue]] = None,
 		overrides: Optional['Overrides'] = None
-	) -> Tuple[str, ParameterList]:
+	) -> Tuple[str, TParameterList]:
 		return self.build(dialect=dialect, newParams=newParams, overrides=overrides).db
 
 PartReplacer = Callable[[Union[str, QueryBit]], Union[str, QueryBit]]
@@ -180,19 +183,20 @@ def _replace_stuff(fn: QueryReplacer, q: Query) -> Query:
 	import functools
 
 	F = TypeVar('F', bound=Callable[..., Any])
-	def cache_with(key: Callable[[Any], Hashable]) -> Callable[[F], F]:
+	def cache_with_id() -> Callable[[F], F]:
 		def decorator(fn: F) -> F:
 			_cache = {}
 			@functools.wraps(fn)
 			def wrapped(arg): # type: ignore
-				k = key(arg)
-				if k not in _cache:
-					_cache[k] = fn(arg)
-				return _cache[k]
+				arg_id = id(arg)
+				if arg_id not in _cache:
+					_cache[arg_id] = arg, fn(arg)
+				_, result = _cache[arg_id]
+				return result
 			return cast(F, wrapped)
 		return decorator
 		
-	@cache_with(key=lambda q: id(q))
+	@cache_with_id()
 	def rewrite_query(q: Query) -> Query:
 
 		def replacer(q: Union[str, QueryBit]) -> Union[str, QueryBit]:
@@ -203,34 +207,32 @@ def _replace_stuff(fn: QueryReplacer, q: Query) -> Query:
 
 		new_q = _replace_parts(replacer, q)
 
-		return fn(new_q)
+		result = fn(new_q)
 
-	result = rewrite_query(q)
-	assert isinstance(result, Query), f'{fn} returned None! Naughty!'
-	return result
+		if not isinstance(result, Query):
+			raise TypeError(f'{fn} returned None! fn passed to QueryReplacer needs to always return a Query.')
+		
+		return result
+
+	return rewrite_query(q)
 
 def _replace_parts(fn: PartReplacer, q: Query) -> Query:
 	"""Replaces every bit in q with fn(bit). If the result is the same, q is returned unchanged."""
-	new_parts = [fn(part) for part in q.queryParts]
+	new_parts = tuple(fn(part) for part in q.queryParts)
 	if new_parts == q.queryParts:
 		return q
 	else:
-		return Query(
-			queryParts=new_parts,
-			default_dialect=q.default_dialect,
-			default_overrides=q.default_overrides,
-			_extensions=q._extensions
-		)
+		return dataclasses.replace(q, queryParts=new_parts)
 
 def _params_replacer(newParams: Optional[Dict[str, Any]]) -> QueryReplacer:
 	if newParams is None:
 		return lambda q: q
 	
 	def part_replacer(p: Union[str, QueryBit]) -> Union[str, QueryBit]:
+		assert newParams is not None # make mypy happy
 		_newParams = Parameters(**newParams) # checks if hashable.
 
 		if (isinstance(p, ParameterPlaceholder) and p.key in _newParams):
-			print(f'replacing {p.key=} with {_newParams[p.key]=}')
 			return _newParams[p.key]
 		else:
 			return p
@@ -272,9 +274,9 @@ class Parameters:
 			val = tuple(val)
 		try:
 			h = hash(val)
-		except TypeError:
-			raise ValueError(f'Refusing to add {key}:{val} - parameter values need to be hashable.')
-		return val
+			return cast(Hashable, val)
+		except TypeError as e:
+			raise ValueError(f'Refusing to add {key}:{val} - parameter values need to be hashable.') from e
 
 	def _add(self, key: str, val: Any) -> ParameterPlaceholder:
 		if key in self.params:
