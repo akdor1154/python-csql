@@ -33,7 +33,7 @@ def  _cache_replacer(queryRenderer: QueryRenderer) -> QueryReplacer:
 
 class KeyLookup():
 
-    saved: Dict[int, Query] = {}
+    saved: Dict[int, Awaitable[Query]] = {}
     lock = threading.Lock()
 
     def _get_key(self, rq: RenderedQuery, tag: Optional[str]) -> int:
