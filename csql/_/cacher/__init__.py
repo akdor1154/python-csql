@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from ..renderer.query import QueryRenderer
 from csql import Q
 from abc import ABC, abstractmethod
-from functools import cache, partial
 from typing import *
 import threading
 import asyncio

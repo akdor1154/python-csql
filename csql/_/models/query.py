@@ -181,22 +181,8 @@ QueryReplacer = Callable[[Query], Query]
 def _replace_stuff(fn: QueryReplacer, q: Query) -> Query:
 	"""Replace every q in a tree with fn(q), beginning with the leaves."""
 	import functools
-
-	F = TypeVar('F', bound=Callable[..., Any])
-	def cache_with_id() -> Callable[[F], F]:
-		def decorator(fn: F) -> F:
-			_cache = {}
-			@functools.wraps(fn)
-			def wrapped(arg): # type: ignore
-				arg_id = id(arg)
-				if arg_id not in _cache:
-					_cache[arg_id] = arg, fn(arg)
-				_, result = _cache[arg_id]
-				return result
-			return cast(F, wrapped)
-		return decorator
 		
-	@cache_with_id()
+	@functools.lru_cache(maxsize=None)
 	def rewrite_query(q: Query) -> Query:
 
 		def replacer(q: Union[str, QueryBit]) -> Union[str, QueryBit]:
