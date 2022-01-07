@@ -1,5 +1,5 @@
 from csql import Q, Query
-from csql._.models.query import ParameterList, ParameterPlaceholder, Parameters, QueryBit
+from csql._.models.query import ParameterPlaceholder, Parameters, QueryBit
 from csql._.models.query_replacers import replace_queries_in_tree
 from textwrap import dedent
 
@@ -76,8 +76,8 @@ def test_replace_modify_params():
 
 	q1r = q1.build()
 	assert q1r.sql == 'select 1 from root where v = :1'
-	assert q1r.parameters == ParameterList(1)
+	assert q1r.parameters == (1,)
 
 	q1rr = q1_replaced.build()
 	assert q1rr.sql == "select 1 from root where v = 'ZAP'"
-	assert q1rr.parameters == ParameterList()
+	assert q1rr.parameters == ()

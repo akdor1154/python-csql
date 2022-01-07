@@ -1,4 +1,4 @@
-from csql import Q, Query, RenderedQuery, Parameters, ParameterList as PL, Overrides
+from csql import Q, Query, RenderedQuery, Parameters, Overrides
 from csql.render.param import ParameterRenderer
 from csql.render.query import QueryRenderer
 
@@ -17,5 +17,5 @@ def test_renderer_override():
 
 	assert q.build() == RenderedQuery(
 		sql="hello hello",
-		parameters=PL()
+		parameters=()
 	)

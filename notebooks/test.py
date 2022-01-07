@@ -52,7 +52,7 @@ qTab = Q(f'''
 display(qTab.preview_pd(dp))
 
 #%%
-from csql._.cacher import TempTableCacher
+from csql._.persist import TempTableCacher
 C = TempTableCacher(dp)
 #%%
 p = Parameters(year='2018')

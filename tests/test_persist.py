@@ -1,8 +1,7 @@
 from csql import Q, Query, Parameters
-from csql._.models.query import ParameterList
 from textwrap import dedent
 
-from csql.contrib.cacher import TempTableCacher, Cacher, Key
+from csql.contrib.persist import TempTableCacher, Cacher, Key
 
 from unittest.mock import Mock, MagicMock
 import re
@@ -37,7 +36,7 @@ def test_persist_params():
 	q1r = q1.build()
 
 	assert re.match(r'select \* from "csql_cache_.+"', q1r.sql)
-	assert q1r.parameters == ParameterList()
+	assert q1r.parameters == ()
 
 
 def test_persist_reparameterize():
@@ -50,11 +49,11 @@ def test_persist_reparameterize():
 		q1 = Q(f''' select {p['val']} as val ''').persist(c)
 		q2 = Q(f''' select val*2 as v2 from {q1} ''')
 		
-		res2 = con.execute(*q2.db()).fetchall()
+		res2 = con.execute(*q2.db).fetchall()
 		assert res2 == [(246,)]
 
 		res2_reparam = con.execute(
-			*q2.db(newParams=dict(val=100))
+			*q2.build(newParams=dict(val=100)).db
 		).fetchall()
 		assert res2_reparam == [(200,)]
 
@@ -68,7 +67,7 @@ def test_persist_reparameterize():
 	q1r = q1.build()
 
 	assert re.match(r'select \* from "csql_cache_.+"', q1r.sql)
-	assert q1r.parameters == ParameterList()
+	assert q1r.parameters == ()
 
 def test_persist_tag():
 

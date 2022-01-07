@@ -29,6 +29,7 @@ author = 'Jarrad Whitaker'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'sphinx.ext.intersphinx',
     'sphinx.ext.autodoc',
     'extensions.csql_docs'
 ]
@@ -44,6 +45,16 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # -- autodoc stuff -----
 autodoc_member_order = 'bysource'
 autodoc_typehints = 'description'
+autodoc_class_signature = 'separated'
+
+
+# -- sphinx-autodoc-typehints stuff
+#set_type_checking_flag = True
+
+# -- intersphinx
+intersphinx_mapping = {
+    'pandas': ('https://pandas.pydata.org/docs/', None)
+}
 
 # -- Options for HTML output -------------------------------------------------
 

@@ -10,6 +10,14 @@ dt em.sig-param:last-of-type::after {
     white-space: pre-wrap;
 }
 
+dt em.sig-param:first-of-type:last-of-type::before {
+    content: none
+}
+
+dt em.sig-param:first-of-type:last-of-type::after {
+    content: none
+}
+
 /* To have blue background of width of the block (instead of width of content) */
 dl.class > dt:first-of-type {
     display: block !important;

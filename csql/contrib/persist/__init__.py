@@ -1,5 +1,5 @@
 
-from csql._.cacher import (
+from csql._.persist import (
     Cacher as Cacher,
     Key as Key
 )

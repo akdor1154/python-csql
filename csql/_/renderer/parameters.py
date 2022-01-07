@@ -1,5 +1,5 @@
 from typing import *
-from ..models.query import Parameters, TParameterList as ParameterList, ParameterPlaceholder
+from ..models.query import Parameters, ParameterList, ParameterPlaceholder
 from ..models.dialect import SQLDialect, ParamStyle
 from ..utils import assert_never
 from collections.abc import Collection as CollectionABC
@@ -23,7 +23,7 @@ class ParamList:
 		return len(self._params)-1
 
 	def render(self) -> ParameterList:
-		return list(self._params) # todo -> tuple
+		return tuple(self._params) # todo -> tuple
 
 class ParameterRenderer(ABC):
 

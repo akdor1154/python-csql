@@ -39,7 +39,7 @@ build-backend = "poetry.masonry.api"
 [tool.poetry.extras]
 pandas = ["pandas"]
 notebooks = ["openpyxl", "duckdb", "ipykernel"]
-docs = ["Sphinx", "sphinx-autobuild", "sphinx-rtd-theme", "sphinx-autoapi"]
+docs = ["Sphinx", "sphinx-autobuild", "sphinx-rtd-theme"]
 
 [tool.pytest.ini_options]
 log_cli_level="DEBUG"

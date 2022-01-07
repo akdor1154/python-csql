@@ -1,4 +1,4 @@
-from csql import Q, RenderedQuery, Parameters, ParameterList as PL
+from csql import Q, RenderedQuery, Parameters
 from csql.dialect import SQLDialect, ParamStyle
 import pytest
 
@@ -12,7 +12,7 @@ def test_parameters_reparameterization_qmark():
 
 	built = q.build(dialect=dialect, newParams={'abckey': 'ABC'})
 
-	assert built.parameters == PL('ABC', 'def')
+	assert built.parameters == ('ABC', 'def')
 
 
 def test_parameters_reparameterization_numeric():
@@ -25,7 +25,7 @@ def test_parameters_reparameterization_numeric():
 
 	built = q.build(dialect=dialect, newParams={'abckey': 'ABC'})
 
-	assert built.parameters == PL('ABC', 'def')
+	assert built.parameters == ('ABC', 'def')
 
 
 def test_parameters_reparameterization_reuse_qmark():
@@ -38,7 +38,7 @@ def test_parameters_reparameterization_reuse_qmark():
 
 	built = q.build(dialect=dialect, newParams={'abckey': 'ABC'})
 
-	assert built.parameters == PL('ABC', 'ABC')
+	assert built.parameters == ('ABC', 'ABC')
 
 
 def test_parameters_reparameterization_reuse_numeric():
@@ -51,7 +51,7 @@ def test_parameters_reparameterization_reuse_numeric():
 
 	built = q.build(dialect=dialect, newParams={'abckey': 'ABC'})
 
-	assert built.parameters == PL('ABC')
+	assert built.parameters == ('ABC',)
 
 
 def test_parameters_reparameterization_collection_qmark():
@@ -63,7 +63,7 @@ def test_parameters_reparameterization_collection_qmark():
 
 	built = q.build(dialect=dialect, newParams={'abckey': ['A','B','C']})
 
-	assert built.parameters == PL('A','B','C')
+	assert built.parameters == ('A','B','C')
 
 
 def test_parameters_reparameterization_collection_numeric():
@@ -75,7 +75,7 @@ def test_parameters_reparameterization_collection_numeric():
 
 	built = q.build(dialect=dialect, newParams={'abckey': ['A','B','C']})
 
-	assert built.parameters == PL('A','B','C')
+	assert built.parameters == ('A','B','C')
 
 
 def test_parameters_reparameterization_collection_resuse_qmark():
@@ -87,7 +87,7 @@ def test_parameters_reparameterization_collection_resuse_qmark():
 
 	built = q.build(dialect=dialect, newParams={'abckey': ['A','B','C']})
 
-	assert built.parameters == PL('A','B','C', 'A', 'B', 'C')
+	assert built.parameters == ('A','B','C', 'A', 'B', 'C')
 
 
 
@@ -100,7 +100,7 @@ def test_parameters_reparameterization_collection_reuse_qmark():
 
 	built = q.build(dialect=dialect, newParams={'abckey': ['A','B','C']})
 
-	assert built.parameters == PL('A','B','C')
+	assert built.parameters == ('A','B','C')
 
 
 def test_parameters_reparameterization_collection_new_length():
@@ -113,4 +113,4 @@ def test_parameters_reparameterization_collection_new_length():
 	built = q.build(dialect=dialect, newParams={'abckey': ['A','B']})
 
 	assert built.sql == 'select 1 where abc in ( :1,:2 ) or abc in ( :1,:2 )'
-	assert built.parameters == PL('A', 'B')
+	assert built.parameters == ('A', 'B')

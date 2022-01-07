@@ -15,8 +15,23 @@ csql autodoc!
 
 .. automodule:: csql
    :members:
+   :exclude-members: Q, Parameters, Query, RenderedQuery
    :undoc-members:
 
+   .. autofunction:: Q
+   .. autoclass:: Parameters
+      :exclude-members: __init__, __new__
+      :class-doc-from: class
+      :members:
+   .. autoclass:: Query
+      :class-doc-from: class
+      :exclude-members: __init__, __new__
+      :members:
+      :undoc-members:
+   .. autoclass:: RenderedQuery
+      :class-doc-from: class
+      :exclude-members: __init__, __new__
+      :members:
 
 
 Indices and tables

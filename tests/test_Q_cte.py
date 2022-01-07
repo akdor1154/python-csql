@@ -1,6 +1,5 @@
-from csql import Q, RenderedQuery, Parameters
+from csql import Q
 from textwrap import dedent
-from pprint import pprint
 
 
 def test_basic_cte():
@@ -16,7 +15,7 @@ def test_basic_cte():
 		)
 		select 2 join _subQuery0'''
 	).strip()
-	assert r.parameters == []
+	assert r.parameters == ()
 
 def test_multiple_cte():
 	q1 = Q(f"select 1")
@@ -35,7 +34,7 @@ def test_multiple_cte():
 		)
 		select 3 join _subQuery1'''
 	).strip()
-	assert r.parameters == []
+	assert r.parameters == ()
 
 def test_nonlinear_cte():
 	q1 = Q(f"select 1")
@@ -58,7 +57,7 @@ def test_nonlinear_cte():
 		)
 		select 4 join _subQuery1 join _subQuery2'''
 	).strip()
-	assert r.parameters == []
+	assert r.parameters == ()
 
 def test_multi_root_cte():
 	q1 = Q(f"select 1")
@@ -80,4 +79,4 @@ def test_multi_root_cte():
 		)
 		select 4 join _subQuery1 join _subQuery2'''
 	).strip()
-	assert r.parameters == []
+	assert r.parameters == ()

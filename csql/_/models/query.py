@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import dataclasses
 from typing import *
 from dataclasses import dataclass
@@ -8,6 +10,7 @@ from ..input.strparsing import InstanceTracking
 from weakref import WeakValueDictionary
 from .dialect import SQLDialect
 from collections.abc import Collection as CollectionABC
+import functools
 #from .persisted_query import PersistedQuery
 
 import itertools
@@ -15,7 +18,11 @@ import itertools
 if TYPE_CHECKING:
 	import pandas as pd
 	from .overrides import Overrides
-	from ..cacher import Cacher
+	from ..persist import Cacher
+	# import public interface so we can avoid internal ._....  appearing in
+	# function signatures, doco, etc.
+	import csql
+	import csql.dialect
 
 import sys
 if sys.version_info >= (3, 9):
@@ -27,24 +34,43 @@ else:
 
 ScalarParameterValue = Any
 
-TParameterList = Sequence[ScalarParameterValue]
-def ParameterList(*s: ScalarParameterValue) -> TParameterList:
-	return list(s)
+ParameterList = Tuple[ScalarParameterValue, ...]
 
 class RenderedQuery(NamedTuple):
+	'''
+	A :class:`RenderedQuery` is a pair of ``(sql, parameters)``, ready
+	to be passed directly to a database.
+
+	They are obtained by using :meth:`Query.build`.
+	'''
 	sql: str
-	parameters: TParameterList
+	''' The rendered SQL, ready to be passed to a database. '''
+	parameters: ParameterList
+	''' A tuple of parameters, to go along with the SQL. '''
 
 	# utility properties for easy splatting
 	@property
 	def pd(self) -> Dict[str, Any]:
+		"""
+		Gives dict of ``{'sql':sql, 'params':params}``, for usage like:
+
+		>>> q = Q('select 123')
+		>>> pd.read_sql(**q.build().pd, con=con)
+
+		"""
 		return dict(
 			sql=self.sql,
 			params=self.parameters
 		)
 
 	@property
-	def db(self) -> Tuple[str, TParameterList]:
+	def db(self) -> Tuple[str, ParameterList]:
+		"""
+		Returns a tuple of (sql, params), for usage like:
+
+		>>> q = Q('select 123')
+		>>> con.cursor().execute(*q.build().db)
+		"""
 		return (self.sql, self.parameters)
 
 class QueryBit(metaclass=ABCMeta):
@@ -65,11 +91,19 @@ NOVALUE = '_csql_novalue'
 
 @dataclass(frozen=True)
 class Query(QueryBit, InstanceTracking):
+	"""
+	A Query is CSQL's structured concept of a SQL query. You should not create these directly,
+	instead you should use :func:`csql.Q`.
+	"""
 
 	queryParts: Tuple[Union[str, QueryBit], ...]
-	default_dialect: SQLDialect
+	':meta private:'
+	default_dialect: 'csql.dialect.SQLDialect'
+	':meta private:'
 	default_overrides: Optional['Overrides']
+	':meta private:'
 	_extensions: FrozenSet[QueryExtension]
+	':meta private:'
 
 
 	## deps
@@ -96,17 +130,62 @@ class Query(QueryBit, InstanceTracking):
 			_extensions=self._extensions | set(e)
 		)
 
-	def build(
-		self, *,
+	def preview_pd(
+		self, con: Any, rows: int=10,
 		dialect: Optional[SQLDialect] = None,
 		newParams: Optional[Dict[str, ScalarParameterValue]] = None,
-		overrides: Optional['Overrides'] = None,
-	) -> RenderedQuery:
+		overrides: Optional['Overrides'] = None
+	) -> "pd.DataFrame":
+		"""
+		Return a small dataframe to preview the results of this query.
+		
+		Usage:
+
+		>>> c = your_db.connect()
+		>>> q = Q(f'''select 123 as val''')
+		>>> print(q.preview_pd(c))
+		+---+
+		|val|
+		|---|
+		|123|
+		+---+
+		
+
+		:param con: A DBAPI-compliant connection, passed directly to ``con`` arg of :func:`pandas.read_sql`.
+		:param rows: The number of rows to pull.
+		:rtype: :class:`pandas.DataFrame`
+		"""
+		import pandas as pd
+		from csql import Q
+		from ..utils import limit_query
+		dialect = dialect or self.default_dialect
+		previewQ = limit_query(self, rows, dialect)
+		return pd.read_sql(
+			**previewQ.build(dialect=dialect, newParams=newParams, overrides=overrides).pd,
+			con=con
+		)
+
+	def build(
+		self, *,
+		dialect: Optional['csql.dialect.SQLDialect'] = None,
+		newParams: Optional[Dict[str, ScalarParameterValue]] = None,
+		overrides: Optional['csql.Overrides'] = None,
+	) -> 'csql.RenderedQuery':
+		"""
+		Build this :class:`csql.Query` into a :class:`csql.RenderedQuery`.
+
+		While you can specify paramters to manually override how this Query is rendered, it's normally
+		better to just supply these as defaults when you create your Queries in the first place. See: TODO: Query defaults.
+		
+		:param dialect: An optional :class:`csql.dialect.SQLDialect` to render as. See TODO: dialects.
+		:param newParams: A dictionary of ``{'key': value}`` to override any parameters. See: TODO: overriding parameters.
+		:param overrides: An optional :class:`csql.Overrides` to override how rendering workd. See: TODO: overrides.
+		"""
 		dialect = dialect or self.default_dialect
 		from ..renderer.query import BoringSQLRenderer, QueryRenderer
 		from ..renderer.parameters import ParameterRenderer
 		from .overrides import Overrides
-		from ..cacher import cache_replacer
+		from ..persist import cache_replacer
 		from .query_replacers import replace_queries_in_tree, params_replacer, pre_build_replacer
 
 		overrides = overrides or self.default_overrides or Overrides()
@@ -141,50 +220,83 @@ class Query(QueryBit, InstanceTracking):
 			parameters=rendered.parameters
 		)
 
+	@property
+	def pd(self) -> Dict[str, Any]:
+		"""
+		Convenience wrapper for Query.build().pd.
+		
+		Returns a dict of ``{'sql':sql, 'params':params}``, for usage like:
+
+		>>> q = Q('select 123')
+		>>> pd.read_sql(**q.pd, con=con)
+
+		"""
+		return self.build().pd
+
+	@property
+	def db(self) -> Tuple[str, ParameterList]:
+		"""
+		Convenience wrapper for :meth:`Query.build().db<RenderedQuery.db>`.
+		
+		Returns a tuple of (sql, params), for usage like:
+
+		>>> q = Q('select 123')
+		>>> con.cursor().execute(*q.db)
+
+		"""
+		return self.build().db
+
+
 	def persist(self, cacher: 'Cacher', tag: Optional[str] = None) -> 'Query':
+		"""
+		Marks this query for persistance with the given :class:`csql.contrib.persist.Cacher`.
+
+		See: TODO: Query Persistance.
+
+		Usage:
+
+		>>> cache = csql.contrib.cacher.TempTableCacher(con)
+		>>> q = Q(f'select 123 from something_slow').persist(cache)
+		>>> q.preview_pd(con) # slow
+		>>> q.preview_pd(con) # fast
+		>>> q2 = Q(f'select count(*) from {q}')
+		>>> q2.preview_pd(con) # also fast
+		"""
 		return cacher.persist(self, tag)
-
-	def preview_pd(
-		self, con: Any, rows: int=10,
-		dialect: Optional[SQLDialect] = None,
-		newParams: Optional[Dict[str, ScalarParameterValue]] = None,
-		overrides: Optional['Overrides'] = None
-	) -> "pd.DataFrame":
-		import pandas as pd
-		from csql import Q
-		from ..utils import limit_query
-		dialect = dialect or self.default_dialect
-		previewQ = limit_query(self, rows, dialect)
-		return pd.read_sql(
-			**previewQ.pd(dialect=dialect, newParams=newParams, overrides=overrides),
-			con=con
-		)
-
-	def pd(
-		self, *,
-		dialect: Optional[SQLDialect] = None,
-		newParams: Optional[Dict[str, ScalarParameterValue]] = None,
-		overrides: Optional['Overrides'] = None
-	) -> Dict[str, Any]:
-		return self.build(dialect=dialect, newParams=newParams, overrides=overrides).pd
-
-	def db(
-		self, *,
-		dialect: Optional[SQLDialect] = None,
-		newParams: Optional[Dict[str, ScalarParameterValue]] = None,
-		overrides: Optional['Overrides'] = None
-	) -> Tuple[str, TParameterList]:
-		return self.build(dialect=dialect, newParams=newParams, overrides=overrides).db
-
 
 @dataclass(frozen=True)
 class ParameterPlaceholder(QueryBit, InstanceTracking):
+	"""
+	A ParameterPlaceholder is what you get when you get an individual parameter by
+	name from a :class:`Parameters` object, like `p['param_you_want']`. The only thing
+	you should need to do with it is interpolate it into a query:
+
+	>>> p = Parameters(param_you_want=123)
+	>>> Q(f'select {p['param_you_want']}')
+	"""
 	key: str
 	value: Hashable
 	_key_context: Optional[int] # allow people to pass multiple distinct parameters with the same key into a Query.
 
 
 class Parameters:
+	"""
+	Parameters let you quickly initialize a bunch of params to pass into your queries.
+
+	Once parameters have been added in the Parameters constructor or with :meth:`add`, they
+	can be pulled out by their ``p['parameter name']``, for use in a :func:`Query<Q>`.
+
+	Usage:
+
+	>>> p = Parameters(
+	...   start=date(2019,1,1)
+	...   end=date(2020,1,1)
+	... )
+	>>> q = Q(f"select * from customers where {p['start']} <= date and date < {p['end']}")
+
+	See: TODO: Re-parameterization
+	"""
+	
 	params: Dict[str, Hashable]
 
 	def __init__(self, **kwargs: Any):
@@ -207,30 +319,48 @@ class Parameters:
 		self.params[key] = val
 		return self[key]
 
-	def add(self, _value: Optional[Any]=NOVALUE, **kwargs: Any) -> ParameterPlaceholder:
+	def add(self, value: Optional[Any]=NOVALUE, /, **kwargs: Any) -> 'csql.ParameterPlaceholder':
 		'''
 		Adds a single parameter into this Parameters, and returns it.
-		Useful in loops.
-		```
-			p = Parameters()
-			query = Q(f\'''
-				select
-					thing
-				from table
-				where
-					val = {p.add('boo')}
-					or val = {p.add('bah')}
-			\''')
-		```
+		You don't normally need this (just add them directly when building :class:`Parameters`), but
+		it can be useful in loops where you need to build a query based on an unknown number of params.
+
+		Can be called as
+		
+		>>> p.add('value')
+		# which will add a single parameter with an autogenerated name.
+
+		Can also be called as 
+
+		>>> p.add(key='value')
+		# which will add a named parameter.
+		
+		Useful in loops:
+
+		>>> p = Parameters()
+		>>> licence_cancellations = [
+		...   ('Shazza', date(2019, 1,  1)),
+		...   ('Bazza',  date(2019, 1, 26)),
+		...   ('Azza',   date(2022, 1,  3))
+		... ]
+		>>> where_clause = ' or '.join(
+		...   f'(name = {p.add(name)} and timestamp > {p.add(date)})'
+		...  for name, date in licence_cancellations
+		... )
+		>>> query = Q(f'select * from frankston_traffic_log where {where_clause}')
+
+		:param value: A single parameter to add: ``add(123)``. Cannot be used with ``kwargs``.
+		:param kwargs: A single key and parameter to add: ``add(my_fav_number=123)``. Cannot be used with ``value``.
+
 		'''
-		passed_arg = (_value is not NOVALUE)
+		passed_arg = (value is not NOVALUE)
 		passed_kw = (len(kwargs) == 1)
 		if not (passed_arg ^ passed_kw):
 			raise ValueError('You need to call either add(val) or add(key=val)')
 		if passed_arg:
 			generate_keys = (f'_add_{i}' for i in itertools.count())
 			key = next(k for k in generate_keys if k not in self.params)
-			return self._add(key, _value)
+			return self._add(key, value)
 		elif passed_kw:
 			[(key, val)] = kwargs.items()
 			return self._add(key, val)
