@@ -275,7 +275,9 @@ class ParameterPlaceholder(QueryBit, InstanceTracking):
 	>>> Q(f'select {p['param_you_want']}')
 	"""
 	key: str
+	':meta private:'
 	value: Hashable
+	':meta private:'
 	_key_context: Optional[int] # allow people to pass multiple distinct parameters with the same key into a Query.
 
 
@@ -298,6 +300,7 @@ class Parameters:
 	"""
 	
 	params: Dict[str, Hashable]
+	':meta private:'
 
 	def __init__(self, **kwargs: Any):
 		self.params = {k: self._check_hashable_value(k, v) for k, v in kwargs.items()}

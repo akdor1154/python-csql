@@ -30,6 +30,7 @@ author = 'Jarrad Whitaker'
 # ones.
 extensions = [
     'sphinx.ext.intersphinx',
+    'sphinx.ext.autosummary',
     'sphinx.ext.autodoc',
     'extensions.csql_docs'
 ]
@@ -46,6 +47,10 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 autodoc_member_order = 'bysource'
 autodoc_typehints = 'description'
 autodoc_class_signature = 'separated'
+autodoc_default_options = {
+    'members': True,
+    'undoc-members': True
+}
 
 
 # -- sphinx-autodoc-typehints stuff
@@ -55,6 +60,11 @@ autodoc_class_signature = 'separated'
 intersphinx_mapping = {
     'pandas': ('https://pandas.pydata.org/docs/', None)
 }
+
+autosummary_generate = False
+autosummary_imported_members = True
+autosummary_ignore_module_all = False
+
 
 # -- Options for HTML output -------------------------------------------------
 
