@@ -6,7 +6,12 @@ There are also useful features for handling database parameters properly.
 The intended use-case is for data analysis and exploration.
 
 
-[![PyPI version](https://badge.fury.io/py/csql.svg)](https://pypi.org/project/csql/)
+Latest version on PyPI: |PyPI Version|
+
+.. |PyPI Version| image:: https://badge.fury.io/py/csql.svg
+   :target: https://pypi.org/project/csql/
+
+**Full documentation** is available at https://csql.readthedocs.io/en/latest/api.html .
 
 Example
 =======
