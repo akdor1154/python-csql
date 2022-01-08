@@ -1,4 +1,6 @@
-
+"""
+``contrib.persist`` contains some :class:`csql.persist.Cacher` implementations.
+"""
 from csql._.persist import (
     Cacher as Cacher,
     Key as Key
@@ -10,6 +12,19 @@ from logging import getLogger
 logger = getLogger(__name__)
 
 class TempTableCacher(Cacher):
+    """
+    The ``TempTableCacher`` persists a query in a ``create temporary table if not exists``
+    statement. It needs to be given a DBAPI-compliant connector to work.
+
+    >>> from csql.contrib.persist import TempTableCacher
+    >>> con = my_connection()
+    >>> cache = TempTableCacher(con)
+    >>> q = Q('select * from slow_view').persist(cache)
+    >>> q2 = Q(f'select count(*) from {q}') # does nothing
+    >>> q2.build().sql
+    'select * from csql_cache_None_1234...'
+
+    """
     def __init__(self, connection: Any):
         self._con = connection
 

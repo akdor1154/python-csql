@@ -22,7 +22,8 @@ __all__ = [
 	'ParameterList'
 ]
 
-def __getattr__(name):
+import typing
+def __getattr__(name: str) -> typing.Any:
 	if name == 'ParameterList':
 		from warnings import warn
 		warn(f'ParameterList is deprecated. It\'s now just a type alias, and it will be removed from public exports in a future release.', DeprecationWarning)

@@ -1,4 +1,8 @@
-
+"""
+``contrib.persist.snowflake`` contains cache implementations specifically
+for the Snowflake database. For this file to import properly, you'll need
+to make sure `snowflake-connector-python` is installed.
+"""
 from typing import *
 from . import Cacher, Key
 from csql import RenderedQuery, Query, Q

@@ -1,0 +1,15 @@
+root: index
+subtrees:
+- entries:
+  - file: api.rst
+    # subtrees:
+    # - entries:
+    #   - file: doc2
+    #     subtrees:
+    #     - entries:
+    #       - file: doc3
+  - file: api_dialect.rst
+  - file: api_persist.rst
+  - file: api_contrib.rst
+  # - url: https://example.com
+  # - glob: subfolder/other*

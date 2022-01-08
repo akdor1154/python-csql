@@ -1,19 +1,16 @@
 
 
+.. _basic_usage:
 
-
-===========
+***********
 Basic Usage
-===========
+***********
 
-===
-API
-===
+.. include:: ../README.rst
+   :end-before: .. _end-intro:
 
-
-
-csql
-====
+``csql``
+========
 
 .. currentmodule:: csql
 
@@ -35,23 +32,21 @@ csql
 
    Query
    -----
-   .. autoclass:: Query
+   .. autoclass:: Query()
       :class-doc-from: class
       :exclude-members: __init__, __new__
 
    RenderedQuery
    -------------
-   .. autoclass:: RenderedQuery
+   .. autoclass:: RenderedQuery()
       :class-doc-from: class
       :exclude-members: __init__, __new__
 
    Other
    -----
-   
 
-.. toctree::
-   :maxdepth: 2
-   :hidden:
+.. _reparam:
 
-   api_dialects
-   api_contrib
+.. include:: ../README.rst
+   :start-after: .. _reparam:
+   :end-before: .. _end-reparam:

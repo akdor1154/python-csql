@@ -17,14 +17,14 @@ def Q(
 ) -> 'csql.Query':
 	"""
 	Create a :class:`csql.Query`.
-	
+
 	Usage:
 
 	>>> p = Parameters(created_on=date(2020,1,1))
 	>>> q_cust  = Q(f'select name, customer_type from customers where created_on > {p['created_on']})
 	>>> q_count = Q(f'select customer_type, count(*) from {q1} group by rollup(type)')
 
-	See: TODO: Basic usage
+	See: :ref:`basic_usage`
 
 	:param sql: A string with a SQL query. The string is designed to be built with an ``f'f-string'``,
 		so you can interpolate Parameters and other Queries inside in a natural way.
@@ -40,7 +40,7 @@ def Q(
 					Q(f"select from {blah}")
 			''').strip()
 		)
-		
+
 	queryParts = strparsing.getQueryParts(sql)
 
 	return Query(

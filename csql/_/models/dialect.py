@@ -1,8 +1,11 @@
+from __future__ import annotations
 import abc
 import enum
 from enum import auto
 from typing import *
 from dataclasses import dataclass
+if TYPE_CHECKING:
+	import csql.dialect
 
 __all__ = [
 	'ParamStyle',
@@ -13,26 +16,101 @@ __all__ = [
 ]
 
 class ParamStyle(enum.Enum):
+	'''
+	Enum to define how to render query parameter placeholders.
+	'''
+
 	numeric = auto()
+	'''
+	Use placeholders like ``:1``.
+
+	:meta hide-value:
+	'''
 	numeric_dollar = auto()
+	'''
+	Use placeholders like ``$1``.
+
+	:meta hide-value:
+	'''
 	qmark = auto()
+	'''
+	Use placeholders like ``?``.
+
+	:meta hide-value:
+	'''
+
+	def __repr__(self) -> str:
+		return 'ParamStyle.'+self.name
 
 class Limit(enum.Enum):
+	'''
+	Enum to defines how to limit preview queries.
+	'''
 	limit = auto()
+	'''
+	Use a ``limit`` clause, e.g. ``select * from (query) limit 10``.
+
+	:meta hide-value:
+	'''
 	top_n = auto()
+	'''
+	Use a ``top n`` clause, e.g. ``select top(10) * from (query)``.'
+
+	:meta hide-value:
+	'''
 	ansi = auto()
+	'''
+	Use ANSI SQL ``fetch`` clause, e.g. ``select * from (query) fetch first 10 rows only``.
+
+	:meta hide-value:
+	'''
+
+	def __repr__(self) -> str:
+		return f'Limit.{self.name}'
 
 @dataclass(frozen=True)
 class SQLDialect:
 	"""
-		Represents settings of a SQL Dialect
+	Represents settings of a SQL Dialect.
 
-		.. :canonical: csql.dialect.SQLDialect
+	>>> import functools
+	>>> my_dialect=SQLDialect(paramstyle=ParamStyle.qmark)
+
+	To use as a once-off, pass to :meth:`csql.Query.build`:
+
+	>>> Q('select ...').build()
+	# builds normally
+	>>> Q('select ...').build(dialect=my_dialect)
+	# builds with `my_dialect`
+
+	To set as a default, use ``functools.partial``:
+
+	>>> Q = functools.partial(csql.Q, dialect=my_dialect)
+	>>> q = Q('select ...')
+	# builds with `my_dialect`
+
 	"""
-	paramstyle: ParamStyle = ParamStyle.numeric
-	limit: Limit = Limit.limit
+	paramstyle: csql.dialect.ParamStyle = ParamStyle.numeric
+	limit: csql.dialect.Limit = Limit.limit
 
 	# experiments for doc gen
+Snowflake = SQLDialect(
+	paramstyle=ParamStyle.numeric,
+	limit=Limit.limit
+)
+'''A dialect for Snowflake'''
+
+DuckDB = SQLDialect(
+	paramstyle=ParamStyle.numeric_dollar,
+	limit=Limit.limit
+)
+'''A dialect for DuckDB'''
+
+MSSQL = SQLDialect(
+	paramstyle=ParamStyle.numeric,
+	limit=Limit.top_n
+)
+'''A dialect for MS SQL Server'''
 	# def __repr__(self) -> str:
 	# 	import inspect
 	# 	mod = inspect.getmodule(self)
@@ -61,18 +139,4 @@ DefaultDialect = SQLDialect(
 	paramstyle=ParamStyle.numeric,
 	limit=Limit.limit
 )
-
-Snowflake = SQLDialect(
-	paramstyle=ParamStyle.numeric,
-	limit=Limit.limit
-)
-
-DuckDB = SQLDialect(
-	paramstyle=ParamStyle.numeric_dollar,
-	limit=Limit.limit
-)
-
-MSSQL = SQLDialect(
-	paramstyle=ParamStyle.numeric,
-	limit=Limit.top_n
-)
+'''The default dialect for CSQL.'''

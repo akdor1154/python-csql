@@ -15,7 +15,7 @@ help:
 .PHONY: help Makefile
 
 watch: Makefile
-	sphinx-autobuild "$(SOUCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	sphinx-autobuild "$(SOUCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) -a --watch ../csql $(O)
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).

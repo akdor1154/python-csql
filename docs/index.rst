@@ -6,13 +6,7 @@
 Welcome to csql's documentation!
 ================================
 
-.. toctree::
-   :maxdepth: 5
-   :caption: Contents:
-
-   self
-   api
-
+.. tableofcontents::
 
 Indices and tables
 ==================

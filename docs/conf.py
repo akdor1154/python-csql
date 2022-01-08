@@ -32,9 +32,10 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.autosummary',
     'sphinx.ext.autodoc',
+    'sphinx_external_toc',
     'extensions.csql_docs'
 ]
-
+external_toc_path = "_toc.yml"  # optional, default: _toc.yml
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
@@ -46,7 +47,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # -- autodoc stuff -----
 autodoc_member_order = 'bysource'
 autodoc_typehints = 'description'
-autodoc_class_signature = 'separated'
+#autodoc_class_signature = 'separated'
 autodoc_default_options = {
     'members': True,
     'undoc-members': True

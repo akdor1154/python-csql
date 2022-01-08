@@ -1,14 +1,27 @@
-API: csql.contrib
+``csql.contrib``
 =================
 
 .. currentmodule:: csql.contrib
 
-
 .. automodule:: csql.contrib
-   :members:
-   :undoc-members:
 
+   ``csql.contrib.persist``
+   ========================
 
-   Other
-   -----
-   
+   See also: :ref:`persistance`
+
+   .. automodule:: csql.contrib.persist
+
+   ``csql.contrib.persist.snowflake``
+   ==================================
+
+   .. automodule:: csql.contrib.persist.snowflake
+
+   ``csql.contrib.render``
+   =======================
+   .. automodule:: csql.contrib.render
+
+   ``csql.contrib.render.param``
+   =============================
+   .. automodule:: csql.contrib.render.param
+

@@ -26,6 +26,14 @@ class ParamList:
 		return tuple(self._params) # todo -> tuple
 
 class ParameterRenderer(ABC):
+	"""
+	This is a base class to define how SQL parameters are rendered.
+
+	A new ``ParameterRenderer`` is created each time a :class:`csql.Query`
+	is built, and :meth:`_renderScalarSql` is called once for each
+	parameter that needs to be placed into full :class:`csql.RenderedQuery`. These are called in
+	the order the parameters appear in the rendered query.
+	"""
 
 	renderedParams: ParamList
 
@@ -45,6 +53,20 @@ class ParameterRenderer(ABC):
 
 	@abc.abstractmethod
 	def _renderScalarSql(self, index: int, key: Optional[str]) -> SQL:
+		"""
+		This is called once for each parameter that needs to be rendered
+		into a :class:`csql.RenderedQuery`. Implementations might be simple:
+		for example, the builtin :class:`csql.render.param.QMark` renderer just
+		defines
+
+		.. code-block:: py
+
+			def _renderScalarSql(self, index, key):
+				return SQL('?')
+
+		:param index: - the index of the current parameter in the rendered query. Numbered from 0.
+		:param key: - the (possibly missing) name of the current parameter.
+		"""
 		pass
 
 	def _renderScalar(self, paramKey: Optional[str], paramValue: ScalarParameterValue) -> Tuple[int, SQL]:
@@ -76,6 +98,9 @@ class ParameterRenderer(ABC):
 
 
 class QMark(ParameterRenderer):
+	"""
+	A ``ParameterRenderer`` that renders param placeholders as '?'.
+	"""
 
 	def _renderScalarSql(self, index: int, key: Optional[str]) -> SQL:
 		return SQL('?')
@@ -110,9 +135,15 @@ class NumericParameterRenderer(ParameterRenderer, ABC):
 
 
 class ColonNumeric(NumericParameterRenderer):
+	"""
+	A ``ParameterRenderer`` that renders param placeholders like ':1'.
+	"""
 	def _renderIndex(self, index: int) -> SQL:
 		return SQL(f':{index}')
 
 class DollarNumeric(NumericParameterRenderer):
+	"""
+	A ``ParameterRenderer`` that renders param placeholders like '$1'.
+	"""
 	def _renderIndex(self, index: int) -> SQL:
 		return SQL(f'${index}')
