@@ -1,5 +1,5 @@
-from csql import Q, Query, RenderedQuery, Parameters, ParameterList as PL, Overrides
-from csql.contrib.render.param.UDFParamRenderer import UDFParameterRenderer
+from csql import Q, Query, RenderedQuery, Parameters, Overrides
+from csql.contrib.render.param import UDFParameterRenderer
 
 def test_contrib_param_render_udf() -> None:
 
@@ -10,5 +10,5 @@ def test_contrib_param_render_udf() -> None:
 
 	assert q.build() == RenderedQuery(
 		sql="select 1 where abc = abc",
-		parameters=PL('abcval')
+		parameters=('abcval',)
 	)

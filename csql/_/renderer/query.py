@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import *
 from textwrap import dedent, indent
 import abc
@@ -7,22 +8,38 @@ from ..models.query import Query, ParameterPlaceholder, RenderedQuery, Parameter
 from ..models.dialect import SQLDialect, ParamStyle
 from .parameters import ParameterRenderer, ColonNumeric, DollarNumeric
 
+if TYPE_CHECKING:
+	import csql
+	import csql.render.param
+
 SQLBit = NewType('SQLBit', str)
 
 DepNames = Dict[int, str] # dict of id(query) to query name
 
 class QueryRenderer(abc.ABC):
+	ParamRenderer: Type[csql.render.param.ParameterRenderer]
+
+	# mutable, replaced every render()
 	paramRenderer: ParameterRenderer
-	def __init__(self, paramRenderer: ParameterRenderer, dialect: SQLDialect):
-		self.paramRenderer = paramRenderer
+
+	def __init__(self, ParamRenderer: Type[csql.render.param.ParameterRenderer], dialect: SQLDialect):
+		# param renderer is stateful and should only be used once.
+		# todo: refactor .render into a closure() or something.
+		self.ParamRenderer = ParamRenderer
+
+	def render(self, query: Query) -> RenderedQuery:
+
+		# this guy is only good for a single use...
+		self.paramRenderer = self.ParamRenderer()
+		return self._render(query)
 
 	@abc.abstractmethod
-	def render(self, query: Query) -> RenderedQuery:
+	def _render(self, query: Query) -> RenderedQuery:
 		pass
 
 
 class BoringSQLRenderer(QueryRenderer):
-	"""Render a Query. I'm crossing my fingers that I never have to handle sql dialects, but if they I do, they will be subclasses of this."""
+	"""Render a Query. Referenced other Queries are all assembled with this one into a CTE/with expression."""
 
 	def __renderSingleQuery(self, query: Query, depNames: DepNames) -> Generator[SQLBit, None, None]:
 		for part in query.queryParts:
@@ -49,8 +66,9 @@ class BoringSQLRenderer(QueryRenderer):
 			"".join(queryBits)
 		)
 
-	def render(self, query: Query) -> RenderedQuery:
+	def _render(self, query: csql.Query) -> csql.RenderedQuery:
 		"""Renders a query and all its dependencies into a CTE expression."""
+
 		cteParts = []
 		depNames = {}
 		i = 0

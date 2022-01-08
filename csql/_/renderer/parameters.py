@@ -14,28 +14,26 @@ SQL = NewType('SQL', str)
 
 class ParamList:
 	_params: List[ScalarParameterValue]
-	_keys: Dict[str, List[List[int]]]
-		# key: [
-		# 	[1,2,3], # first time it was used
-		# 	[5,6,7], # second time
-		# 	...
-		# ]
 
 	def __init__(self) -> None:
 		self._params = []
-		self._keys = collections.defaultdict(list)
 
 	def add(self, param: ScalarParameterValue) -> int:
 		self._params.append(param)
 		return len(self._params)-1
 
-	def registerKey(self, key: str, indices: List[int]) -> None:
-		self._keys[key].append(indices)
-
 	def render(self) -> ParameterList:
-		return ParameterList(*self._params, keys=dict(self._keys))
+		return tuple(self._params) # todo -> tuple
 
 class ParameterRenderer(ABC):
+	"""
+	This is a base class to define how SQL parameters are rendered.
+
+	A new ``ParameterRenderer`` is created each time a :class:`csql.Query`
+	is built, and :meth:`_renderScalarSql` is called once for each
+	parameter that needs to be placed into full :class:`csql.RenderedQuery`. These are called in
+	the order the parameters appear in the rendered query.
+	"""
 
 	renderedParams: ParamList
 
@@ -55,6 +53,20 @@ class ParameterRenderer(ABC):
 
 	@abc.abstractmethod
 	def _renderScalarSql(self, index: int, key: Optional[str]) -> SQL:
+		"""
+		This is called once for each parameter that needs to be rendered
+		into a :class:`csql.RenderedQuery`. Implementations might be simple:
+		for example, the builtin :class:`csql.render.param.QMark` renderer just
+		defines
+
+		.. code-block:: py
+
+			def _renderScalarSql(self, index, key):
+				return SQL('?')
+
+		:param index: - the index of the current parameter in the rendered query. Numbered from 0.
+		:param key: - the (possibly missing) name of the current parameter.
+		"""
 		pass
 
 	def _renderScalar(self, paramKey: Optional[str], paramValue: ScalarParameterValue) -> Tuple[int, SQL]:
@@ -82,11 +94,13 @@ class ParameterRenderer(ABC):
 		else:
 			index, sql = self._renderScalar(paramKey, paramValue)
 			indices = [index]
-		self.renderedParams.registerKey(paramKey, indices)
 		return sql
 
 
 class QMark(ParameterRenderer):
+	"""
+	A ``ParameterRenderer`` that renders param placeholders as '?'.
+	"""
 
 	def _renderScalarSql(self, index: int, key: Optional[str]) -> SQL:
 		return SQL('?')
@@ -109,7 +123,7 @@ class NumericParameterRenderer(ParameterRenderer, ABC):
 		return self._renderIndex(index + self.paramNumberFrom)
 
 	def render(self, param: ParameterPlaceholder) -> SQL:
-		key = id(param.parameters) ^ hash(param.key)
+		key = (param._key_context or 0) ^ hash(param.key)
 
 		if key in self.renderedKeys:
 			preRendered = self.renderedKeys[key]
@@ -121,9 +135,15 @@ class NumericParameterRenderer(ParameterRenderer, ABC):
 
 
 class ColonNumeric(NumericParameterRenderer):
+	"""
+	A ``ParameterRenderer`` that renders param placeholders like ':1'.
+	"""
 	def _renderIndex(self, index: int) -> SQL:
 		return SQL(f':{index}')
 
 class DollarNumeric(NumericParameterRenderer):
+	"""
+	A ``ParameterRenderer`` that renders param placeholders like '$1'.
+	"""
 	def _renderIndex(self, index: int) -> SQL:
 		return SQL(f'${index}')

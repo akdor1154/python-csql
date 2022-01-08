@@ -1,9 +1,14 @@
+from __future__ import annotations
 from typing import *
 from ..renderer.parameters import ParameterRenderer
 from ..renderer.query import QueryRenderer
 from dataclasses import dataclass
+if TYPE_CHECKING:
+    import csql
+    import csql.render.param
+    import csql.render.query
 
-@dataclass
+@dataclass(frozen=True)
 class Overrides:
-    paramRenderer: Optional[Type[ParameterRenderer]] = None
-    queryRenderer: Optional[Type[QueryRenderer]] = None
+    paramRenderer: Optional[Type[csql.render.param.ParameterRenderer]] = None
+    queryRenderer: Optional[Type[csql.render.query.QueryRenderer]] = None

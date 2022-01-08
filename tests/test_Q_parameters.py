@@ -1,4 +1,4 @@
-from csql import Q, RenderedQuery, Parameters, ParameterList as PL
+from csql import Q, RenderedQuery, Parameters
 from csql.dialect import SQLDialect, ParamStyle
 import pytest
 
@@ -10,7 +10,7 @@ def test_parameters():
 
 	assert q.build() == RenderedQuery(
 		sql="select 1 where abc = :1",
-		parameters=PL('abc')
+		parameters=('abc',)
 	)
 
 def test_parameters_list():
@@ -22,7 +22,7 @@ def test_parameters_list():
 
 	assert q.build() == RenderedQuery(
 		sql="select 1 where abc = :1 or def in ( :2,:3,:4 )",
-		parameters=PL('abc', 1, 2, 3)
+		parameters=('abc', 1, 2, 3)
 	)
 
 def test_parameters_reuse():
@@ -33,7 +33,7 @@ def test_parameters_reuse():
 
 	assert q.build() == RenderedQuery(
 		sql="select 1 where abc = ( :1,:2,:3 ) or def in ( :1,:2,:3 )",
-		parameters=PL(1, 2, 3)
+		parameters=(1, 2, 3)
 	)
 
 def test_parameters_getattr():
@@ -44,7 +44,7 @@ def test_parameters_getattr():
 
 	assert q.build() == RenderedQuery(
 		sql="select 1 where abc = :1",
-		parameters=PL('abc')
+		parameters=('abc',)
 	)
 
 def test_parameters_dialect_dollar_numeric():
@@ -55,7 +55,7 @@ def test_parameters_dialect_dollar_numeric():
 	dialect = SQLDialect(paramstyle=ParamStyle.numeric_dollar)
 	assert q.build(dialect=dialect) == RenderedQuery(
 		sql="select 1 where abc = $1",
-		parameters=PL('abc')
+		parameters=('abc',)
 	)
 
 def test_parameters_dialect_qmark():
@@ -66,7 +66,7 @@ def test_parameters_dialect_qmark():
 	dialect = SQLDialect(paramstyle=ParamStyle.qmark)
 	assert q.build(dialect=dialect) == RenderedQuery(
 		sql="select 1 where abc = ?",
-		parameters=PL('abc')
+		parameters=('abc',)
 	)
 
 
@@ -79,13 +79,9 @@ def test_parameters_dialect_qmark_reuse():
 	dialect = SQLDialect(paramstyle=ParamStyle.qmark)
 	assert q.build(dialect=dialect) == RenderedQuery(
 		sql="select 1 where abc = ( ?,?,? ) or def in ( ?,?,? )",
-		parameters=PL(1, 2, 3, 1, 2, 3)
+		parameters=(1, 2, 3, 1, 2, 3)
 	)
 
-
-def test_parameters_deprecation():
-	with pytest.warns(DeprecationWarning):
-		q = Q(lambda: "select 1", Parameters())
 
 def test_parameters_add_simple():
 	p = Parameters()
@@ -94,7 +90,7 @@ def test_parameters_add_simple():
 
 	assert q.build() == RenderedQuery(
 		sql = "select :1, :2",
-		parameters=PL(1, 2)
+		parameters=(1, 2)
 	)
 
 def test_parameters_add_to_existing():
@@ -104,7 +100,7 @@ def test_parameters_add_to_existing():
 
 	assert q.build() == RenderedQuery(
 		sql = "select :1, :2 where abc = :3",
-		parameters=PL(1, 2, 'abc')
+		parameters=(1, 2, 'abc')
 	)
 
 def test_parameters_add_to_existing_qmark():
@@ -115,7 +111,7 @@ def test_parameters_add_to_existing_qmark():
 	dialect = SQLDialect(paramstyle=ParamStyle.qmark)
 	assert q.build(dialect=dialect) == RenderedQuery(
 		sql = "select ?, ? where abc = ?",
-		parameters=PL(1, 2, 'abc')
+		parameters=(1, 2, 'abc')
 	)
 
 def test_parameters_add_key():
@@ -125,12 +121,12 @@ def test_parameters_add_key():
 
 	assert q.build() == RenderedQuery(
 		sql = "select :1, :2 where abc = :3",
-		parameters=PL(1, 2, 'abc')
+		parameters=(1, 2, 'abc')
 	)
 
 	assert q.build(newParams={'one': 'one'}) == RenderedQuery(
 		sql = "select :1, :2 where abc = :3",
-		parameters=PL('one', 2, 'abc')
+		parameters=('one', 2, 'abc')
 	)
 
 

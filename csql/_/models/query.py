@@ -1,17 +1,28 @@
+from __future__ import annotations
+
+import dataclasses
 from typing import *
 from dataclasses import dataclass
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
 from ..utils import unique
 from textwrap import dedent
 from ..input.strparsing import InstanceTracking
 from weakref import WeakValueDictionary
 from .dialect import SQLDialect
 from collections.abc import Collection as CollectionABC
+import functools
+#from .persisted_query import PersistedQuery
+
 import itertools
 
 if TYPE_CHECKING:
 	import pandas as pd
 	from .overrides import Overrides
+	from ..persist import Cacher
+	# import public interface so we can avoid internal ._....  appearing in
+	# function signatures, doco, etc.
+	import csql
+	import csql.dialect
 
 import sys
 if sys.version_info >= (3, 9):
@@ -23,77 +34,30 @@ else:
 
 ScalarParameterValue = Any
 
-class ParameterList(List[ScalarParameterValue]):
-	"""This is designed to be returned and passed directly to your DB API. It acts like a list."""
-
-	_params: List[ScalarParameterValue]
-	_paramKeys: Dict[str, List[List[int]]]
-
-	def __getitem__(self, i: Any) -> ScalarParameterValue:
-		return self._params[i]
-
-	def __iter__(self) -> Iterator[ScalarParameterValue]:
-		return iter(self._params)
-
-	def __len__(self) -> int:
-		return len(self._params)
-
-	def __init__(self, *params: ScalarParameterValue, keys: Dict[str, List[List[int]]] = {}) -> None:
-		self._params = list(params)
-		self._paramKeys = keys
-
-	def __repr__(self) -> str:
-		return f'Params {repr(self._params)}'
-
-	def __eq__(self, other: Any) -> bool:
-		if isinstance(other, ParameterList):
-			return self._params == other._params
-		elif isinstance(other, list): # mainly used so I didn't have to rewrite a bunch of tests.. this may be removed.
-			return self._params == other
-		else:
-			return False
-
-	def _reparameterize(self, replacements: Dict[str, Union[Collection[ScalarParameterValue], ScalarParameterValue]]) -> List[ScalarParameterValue]:
-
-		newParams = self._params.copy()
-
-		for key, paramValue in replacements.items():
-			if key not in self._paramKeys:
-				raise Exception(f'Replacement param {key} is not in the original query. You might mean one of {",".join(self._paramKeys)}')
-
-			instances = self._paramKeys[key]
-
-			for indices in instances:
-				paramValue = replacements[key]
-				if not isinstance(paramValue, CollectionABC) or isinstance(paramValue, str):
-					paramValue = [paramValue]
-
-				if len(paramValue) != len(indices):
-					origValues = [
-						self._params[i] for i in indices
-					]
-					raise ValueError(
-						'Replacing collections is only OK if the replacement is the same length as the original.\n'
-						f'You attempted to replace {repr(key)} = {repr(origValues)} (length {len(indices)}) with {repr(paramValue)} (length {len(paramValue)})'
-					)
-				for i, replacement in zip(indices, paramValue):
-					newParams[i] = replacement
-
-		return newParams
-
-	def reparameterize(self, **replacements: ScalarParameterValue) -> 'ParameterList':
-		return ParameterList(
-			*self._reparameterize(replacements),
-			keys=self._paramKeys
-		)
+ParameterList = Tuple[ScalarParameterValue, ...]
 
 class RenderedQuery(NamedTuple):
+	'''
+	A :class:`RenderedQuery` is a pair of ``(sql, parameters)``, ready
+	to be passed directly to a database.
+
+	They are obtained by using :meth:`Query.build`.
+	'''
 	sql: str
+	''' The rendered SQL, ready to be passed to a database. '''
 	parameters: ParameterList
+	''' A tuple of parameters, to go along with the SQL. '''
 
 	# utility properties for easy splatting
 	@property
 	def pd(self) -> Dict[str, Any]:
+		"""
+		Gives dict of ``{'sql':sql, 'params':params}``, for usage like:
+
+		>>> q = Q('select 123')
+		>>> pd.read_sql(**q.build().pd, con=con)
+
+		"""
 		return dict(
 			sql=self.sql,
 			params=self.parameters
@@ -101,18 +65,48 @@ class RenderedQuery(NamedTuple):
 
 	@property
 	def db(self) -> Tuple[str, ParameterList]:
+		"""
+		Returns a tuple of (sql, params), for usage like:
+
+		>>> q = Q('select 123')
+		>>> con.cursor().execute(*q.build().db)
+		"""
 		return (self.sql, self.parameters)
 
 class QueryBit(metaclass=ABCMeta):
 	pass
 
+class QueryExtension(metaclass=ABCMeta): pass
 
-@dataclass
+QE = TypeVar('QE', bound=QueryExtension) # should be bound=Intersection[QueryExtension, NamedTuple]
+
+class PreBuildHook(Protocol):
+	def __call__(self) -> Optional['Query']: ...
+
+@dataclass(frozen=True)
+class PreBuild(QueryExtension):
+	hook: PreBuildHook
+
+NOVALUE = '_csql_novalue'
+
+@dataclass(frozen=True)
 class Query(QueryBit, InstanceTracking):
+	"""
+	A Query is CSQL's structured concept of a SQL query. You should not create these directly,
+	instead you should use :func:`csql.Q`.
+	"""
 
-	queryParts: List[Union[str, QueryBit]]
-	default_dialect: SQLDialect
+	queryParts: Tuple[Union[str, QueryBit], ...]
+	':meta private:'
+	default_dialect: 'csql.dialect.SQLDialect'
+	':meta private:'
 	default_overrides: Optional['Overrides']
+	':meta private:'
+	_extensions: FrozenSet[QueryExtension]
+	':meta private:'
+
+
+	## deps
 
 	def _getDeps_(self) -> Iterable["Query"]:
 		queryDeps = (part for part in self.queryParts if isinstance(part, Query))
@@ -123,16 +117,77 @@ class Query(QueryBit, InstanceTracking):
 	def _getDeps(self) -> Iterable["Query"]:
 		return unique(self._getDeps_(), fn=id)
 
+
+	## extensions
+	def _get_extension(self, t: Type[QE]) -> Optional[QE]:
+		exts = {type(e): e for e in self._extensions} # could memoize this
+		return cast(QE,
+			exts.get(t)
+		) # mypy sucks
+
+	def _add_extensions(self, *e: QueryExtension) -> 'Query':
+		return dataclasses.replace(self,
+			_extensions=self._extensions | set(e)
+		)
+
+	def preview_pd(
+		self, con: Any, rows: int=10,
+		dialect: Optional[csql.dialect.SQLDialect] = None,
+		newParams: Optional[Dict[str, ScalarParameterValue]] = None,
+		overrides: Optional[csql.Overrides] = None
+	) -> pd.DataFrame:
+		"""
+		Return a small dataframe to preview the results of this query.
+
+		Usage:
+
+		>>> c = your_db.connect()
+		>>> q = Q(f'''select 123 as val''')
+		>>> print(q.preview_pd(c))
+		+---+
+		|val|
+		|---|
+		|123|
+		+---+
+
+
+		:param con: A DBAPI-compliant connection, passed directly to ``con`` arg of :func:`pandas.read_sql`.
+		:param rows: The number of rows to pull.
+		:rtype: :class:`pandas.DataFrame`
+		"""
+		import pandas as pd
+		from csql import Q
+		from ..utils import limit_query
+		dialect = dialect or self.default_dialect
+		previewQ = limit_query(self, rows, dialect)
+		return pd.read_sql(
+			**previewQ.build(dialect=dialect, newParams=newParams, overrides=overrides).pd,
+			con=con
+		)
+
 	def build(
 		self, *,
-		dialect: Optional[SQLDialect] = None,
+		dialect: Optional[csql.dialect.SQLDialect] = None,
 		newParams: Optional[Dict[str, ScalarParameterValue]] = None,
-		overrides: Optional['Overrides'] = None
-	) -> RenderedQuery:
+		overrides: Optional[csql.Overrides] = None,
+	) -> csql.RenderedQuery:
+		"""
+		Build this :class:`csql.Query` into a :class:`csql.RenderedQuery`.
+
+		While you can specify paramters to manually override how this Query is rendered, it's normally
+		better to just supply these as defaults when you create your Queries in the first place. See: :ref:`sql-dialects`.
+
+		:param dialect: An optional :class:`csql.dialect.SQLDialect` to render as. See :ref:`sql-dialects`.
+		:param newParams: A dictionary of ``{'key': value}`` to override any parameters. See: :ref:`reparam`.
+		:param overrides: An optional :class:`csql.Overrides` to override how rendering workd. See: :ref:`overrides`.
+		"""
 		dialect = dialect or self.default_dialect
 		from ..renderer.query import BoringSQLRenderer, QueryRenderer
 		from ..renderer.parameters import ParameterRenderer
 		from .overrides import Overrides
+		from ..persist import cache_replacer
+		from .query_replacers import replace_queries_in_tree, params_replacer, pre_build_replacer
+
 		overrides = overrides or self.default_overrides or Overrides()
 
 		ParamRenderer = (
@@ -142,7 +197,6 @@ class Query(QueryBit, InstanceTracking):
 		)
 		if not issubclass(ParamRenderer, ParameterRenderer):
 			raise ValueError(f'{ParamRenderer} needs to be a subclass of csql.ParameterRenderer')
-		paramRenderer = ParamRenderer()
 
 		QR: Type[QueryRenderer] = (
 			overrides.queryRenderer # type: ignore # mypy bug
@@ -151,98 +205,177 @@ class Query(QueryBit, InstanceTracking):
 		)
 		if not issubclass(QR, QueryRenderer):
 			raise ValueError(f'{QueryRenderer} needs to be a subclass of csql.SQLRenderer')
-		queryRenderer = QR(paramRenderer, dialect=dialect)
-		rendered = queryRenderer.render(self)
+		queryRenderer = QR(ParamRenderer, dialect=dialect)
+
+		new_self = self
+		new_self = replace_queries_in_tree(params_replacer(newParams), new_self)
+		new_self = replace_queries_in_tree(cache_replacer(queryRenderer), new_self)
+		new_self = replace_queries_in_tree(pre_build_replacer(), new_self)
+
+		queryRenderer = QR(ParamRenderer, dialect=dialect)
+		rendered = queryRenderer.render(new_self)
 
 		return RenderedQuery(
 			sql=rendered.sql,
-			parameters=rendered.parameters.reparameterize(**(newParams or {}))
+			parameters=rendered.parameters
 		)
 
-	def preview_pd(
-		self, con: Any, rows: int=10,
-		dialect: Optional[SQLDialect] = None,
-		newParams: Optional[Dict[str, ScalarParameterValue]] = None,
-		overrides: Optional['Overrides'] = None
-	) -> "pd.DataFrame":
-		import pandas as pd
-		from csql import Q
-		from ..utils import limit_query
-		dialect = dialect or self.default_dialect
-		previewQ = limit_query(self, rows, dialect)
-		return pd.read_sql(**previewQ.pd(), con=con)
+	@property
+	def pd(self) -> Dict[str, Any]:
+		"""
+		Convenience wrapper for Query.build().pd.
 
-	def pd(
-		self, *,
-		dialect: Optional[SQLDialect] = None,
-		newParams: Optional[Dict[str, ScalarParameterValue]] = None,
-		overrides: Optional['Overrides'] = None
-	) -> Dict[str, Any]:
-		return self.build(dialect=dialect, newParams=newParams).pd
+		Returns a dict of ``{'sql':sql, 'params':params}``, for usage like:
 
-	def db(
-		self, *,
-		dialect: Optional[SQLDialect] = None,
-		newParams: Optional[Dict[str, ScalarParameterValue]] = None,
-		overrides: Optional['Overrides'] = None
-	) -> Tuple[str, ParameterList]:
-		return self.build(dialect=dialect, newParams=newParams).db
+		>>> q = Q('select 123')
+		>>> pd.read_sql(**q.pd, con=con)
+
+		"""
+		return self.build().pd
+
+	@property
+	def db(self) -> Tuple[str, ParameterList]:
+		"""
+		Convenience wrapper for :meth:`Query.build().db<RenderedQuery.db>`.
+
+		Returns a tuple of (sql, params), for usage like:
+
+		>>> q = Q('select 123')
+		>>> con.cursor().execute(*q.db)
+
+		"""
+		return self.build().db
 
 
-@dataclass
+	def persist(self, cacher: 'Cacher', tag: Optional[str] = None) -> 'Query':
+		"""
+		Marks this query for persistance with the given :class:`csql.contrib.persist.Cacher`.
+
+		See: :ref:`persist`
+
+		Usage:
+
+		>>> cache = csql.contrib.cacher.TempTableCacher(con)
+		>>> q = Q(f'select 123 from something_slow').persist(cache)
+		>>> q.preview_pd(con) # slow
+		>>> q.preview_pd(con) # fast
+		>>> q2 = Q(f'select count(*) from {q}')
+		>>> q2.preview_pd(con) # also fast
+		"""
+		return cacher.persist(self, tag)
+
+@dataclass(frozen=True)
 class ParameterPlaceholder(QueryBit, InstanceTracking):
-	key: str
-	value: Any
-	parameters: 'Parameters'
+	"""
+	A ParameterPlaceholder is what you get when you get an individual parameter by
+	name from a :class:`Parameters` object, like `p['param_you_want']`. The only thing
+	you should need to do with it is interpolate it into a query:
 
-NOVALUE = '_csql_novalue'
+	>>> p = Parameters(param_you_want=123)
+	>>> Q(f'select {p['param_you_want']}')
+	"""
+	key: str
+	':meta private:'
+	value: Hashable
+	':meta private:'
+	_key_context: Optional[int] # allow people to pass multiple distinct parameters with the same key into a Query.
+
 
 class Parameters:
-	params: Dict[str, Any]
+	"""
+	Parameters let you quickly initialize a bunch of params to pass into your queries.
+
+	Once parameters have been added in the Parameters constructor or with :meth:`add`, they
+	can be pulled out by their ``p['parameter name']``, for use in a :func:`Query<Q>`.
+
+	Usage:
+
+	>>> p = Parameters(
+	...   start=date(2019,1,1)
+	...   end=date(2020,1,1)
+	... )
+	>>> q = Q(f"select * from customers where {p['start']} <= date and date < {p['end']}")
+
+	See: :ref:`reparam`
+	"""
+
+	params: Dict[str, Hashable]
+	':meta private:'
 
 	def __init__(self, **kwargs: Any):
-		self.params = kwargs
+		self.params = {k: self._check_hashable_value(k, v) for k, v in kwargs.items()}
+
+	@staticmethod
+	def _check_hashable_value(key: str, val: Any) -> Hashable:
+		if isinstance(val, Collection) and not isinstance(val, str):
+			val = tuple(val)
+		try:
+			h = hash(val)
+			return cast(Hashable, val)
+		except TypeError as e:
+			raise ValueError(f'Refusing to add {key}:{val} - parameter values need to be hashable.') from e
 
 	def _add(self, key: str, val: Any) -> ParameterPlaceholder:
 		if key in self.params:
 			raise ValueError(f'Refusing to add {key}: it is already in this set of Parameters (with value {self.params[key]}).')
+		val = self._check_hashable_value(key, val)
 		self.params[key] = val
 		return self[key]
 
-	def add(self, _value: Optional[Any]=NOVALUE, **kwargs: Any) -> ParameterPlaceholder:
+	def add(self, value: Optional[Any]=NOVALUE, /, **kwargs: Any) -> 'csql.ParameterPlaceholder':
 		'''
 		Adds a single parameter into this Parameters, and returns it.
-		Useful in loops.
-		```
-			p = Parameters()
-			query = Q(f\'''
-				select
-					thing
-				from table
-				where
-					val = {p.add('boo')}
-					or val = {p.add('bah')}
-			\''')
-		```
+		You don't normally need this (just add them directly when building :class:`Parameters`), but
+		it can be useful in loops where you need to build a query based on an unknown number of params.
+
+		Can be called as
+
+		>>> p.add('value')
+		# which will add a single parameter with an autogenerated name.
+
+		Can also be called as
+
+		>>> p.add(key='value')
+		# which will add a named parameter.
+
+		Useful in loops:
+
+		>>> p = Parameters()
+		>>> licence_cancellations = [
+		...   ('Shazza', date(2019, 1,  1)),
+		...   ('Bazza',  date(2019, 1, 26)),
+		...   ('Azza',   date(2022, 1,  3))
+		... ]
+		>>> where_clause = ' or '.join(
+		...   f'(name = {p.add(name)} and timestamp > {p.add(date)})'
+		...  for name, date in licence_cancellations
+		... )
+		>>> query = Q(f'select * from frankston_traffic_log where {where_clause}')
+
+		:param value: A single parameter to add: ``add(123)``. Cannot be used with ``kwargs``.
+		:param kwargs: A single key and parameter to add: ``add(my_fav_number=123)``. Cannot be used with ``value``.
+
 		'''
-		passed_arg = (_value is not NOVALUE)
+		passed_arg = (value is not NOVALUE)
 		passed_kw = (len(kwargs) == 1)
 		if not (passed_arg ^ passed_kw):
 			raise ValueError('You need to call either add(val) or add(key=val)')
 		if passed_arg:
 			generate_keys = (f'_add_{i}' for i in itertools.count())
 			key = next(k for k in generate_keys if k not in self.params)
-			return self._add(key, _value)
+			return self._add(key, value)
 		elif passed_kw:
 			[(key, val)] = kwargs.items()
 			return self._add(key, val)
 		raise RuntimeError('Uh oh, csql bug. Please report.')
 
+	def __contains__(self, key: str) -> bool:
+		return self.params.__contains__(key)
 
 	def __getitem__(self, key: str) -> ParameterPlaceholder:
 		paramVal = self.params[key] # check existence
-		return ParameterPlaceholder(key=key, value=paramVal, parameters=self)
+		return ParameterPlaceholder(key=key, value=paramVal, _key_context=id(self))
 
 	def __getattr__(self, key: str) -> ParameterPlaceholder:
 		paramVal = self.params[key] # check existence
-		return ParameterPlaceholder(key=key, value=paramVal, parameters=self)
+		return ParameterPlaceholder(key=key, value=paramVal, _key_context=id(self))

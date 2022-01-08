@@ -10,7 +10,7 @@ executors:
       - image: cimg/python:<< parameters.python_docker_tag >>
   publisher:
     docker:
-      - image: cimg/python:3.9
+      - image: cimg/python:3.10
 
 jobs:
   test:
@@ -36,7 +36,6 @@ jobs:
               v2
               python_artifacts
               << parameters.python_docker_tag >>
-              {{ checksum "pyproject.toml" }}
               {{ checksum "poetry.lock" }}
 
 
@@ -49,14 +48,13 @@ jobs:
               v2
               python_artifacts
               << parameters.python_docker_tag >>
-              {{ checksum "pyproject.toml" }}
               {{ checksum "poetry.lock" }}
           paths:
             - .venv
 
       - run:
           name: mypy
-          command: poetry run mypy csql
+          command: poetry run mypy csql tests
 
       - run:
           name: pytest
@@ -84,7 +82,7 @@ workflows:
       - test:
           matrix:
             parameters:
-              python_docker_tag: ["3.6", "3.7", "3.8", "3.9"]
+              python_docker_tag: ["3.8", "3.9", "3.10"]
           filters:
             tags:
               only: /^v\d+\.\d+\.\d+.*$/
