@@ -11,6 +11,9 @@ executors:
   publisher:
     docker:
       - image: cimg/python:3.10
+  docs:
+    docker:
+      - image: cimg/python:3.8 # match RTD
 
 jobs:
   test:
@@ -60,6 +63,44 @@ jobs:
           name: pytest
           command: poetry run pytest
 
+  docs:
+    executor:
+      name: publisher
+    steps:
+      - run:
+          name: Install poetry
+          command: |
+            python -m pip install --upgrade poetry
+            poetry config virtualenvs.in-project true
+
+      - checkout
+
+      - restore_cache:
+          keys:
+            - >
+              v2
+              doc_python_artifacts
+              << parameters.python_docker_tag >>
+              {{ checksum "poetry.lock" }}
+
+      - run:
+          name: Install docs dependencies
+          command: poetry install -E docs
+
+      - save_cache:
+          key: >
+              v2
+              python_artifacts
+              << parameters.python_docker_tag >>
+              {{ checksum "poetry.lock" }}
+          paths:
+            - .venv
+
+      - run:
+          name: Build docs
+          working_directory: docs
+          command:  poetry run make html SPHINXOPTS="-W --keep-going -n"
+
   register:
     executor:
       name: publisher
@@ -86,9 +127,14 @@ workflows:
           filters:
             tags:
               only: /^v\d+\.\d+\.\d+.*$/
+      - docs:
+          filters:
+            tags:
+              only: /^v\d+\.\d+\.\d+.*$/
       - register:
           requires:
             - test
+            - docs
           context: Python CSQL
           filters:
             tags:

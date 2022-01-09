@@ -8,7 +8,7 @@
    ``csql.contrib.persist``
    ========================
 
-   See also: :ref:`persistance`
+   See also: :ref:`persist`
 
    .. automodule:: csql.contrib.persist
 

@@ -11,5 +11,6 @@ subtrees:
   - file: api_dialect.rst
   - file: api_persist.rst
   - file: api_contrib.rst
+  - file: changelog.rst
   # - url: https://example.com
   # - glob: subfolder/other*
