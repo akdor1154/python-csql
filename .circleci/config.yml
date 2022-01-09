@@ -11,9 +11,6 @@ executors:
   publisher:
     docker:
       - image: cimg/python:3.10
-  docs:
-    docker:
-      - image: cimg/python:3.8 # match RTD
 
 jobs:
   test:
@@ -64,8 +61,12 @@ jobs:
           command: poetry run pytest
 
   docs:
+    parameters:
+      python_docker_tag:
+        type: string
     executor:
-      name: publisher
+      name: python_docker
+      python_docker_tag: << parameters.python_docker_tag >>
     steps:
       - run:
           name: Install poetry
@@ -128,6 +129,9 @@ workflows:
             tags:
               only: /^v\d+\.\d+\.\d+.*$/
       - docs:
+          matrix:
+            parameters:
+              python_docker_tag: ["3.8"] # match 3.8
           filters:
             tags:
               only: /^v\d+\.\d+\.\d+.*$/
