@@ -91,7 +91,7 @@ jobs:
       - save_cache:
           key: >
               v2
-              python_artifacts
+              doc_python_artifacts
               << parameters.python_docker_tag >>
               {{ checksum "poetry.lock" }}
           paths:
