@@ -1,7 +1,7 @@
 
 # csql - Composeable SQL
 
-(intro)=
+% (intro)=
 
 **csql** is a Python library to help you write more manageable SQL queries. You can write your queries as small, self-contained chunks, preview the results without pulling a whole result-set down from your database, then refer to them in future queries.
 
@@ -137,7 +137,7 @@ order by ntile_100
 which is exactly the sort of unmaintainable and undebuggable monstrosity that this library is designed to help you avoid.
 
 
-(end-intro)=
+% (end-intro)=
 
 ## Design Notes
 
@@ -146,7 +146,7 @@ It's also not actually tied to `pandas` at all - `.pd()` is just a convenience m
 
 ## Easy Parameters
 
-(params)=
+% (params)=
 
 Using proper SQL prepared statements is great to do, but can be annoying to maintain. Additionally, it can be incredibly
 annoying when you are trying to use a list from Python:
@@ -196,7 +196,7 @@ with con.cursor() as c:
 
 
 
-(end-params)=
+% (end-params)=
 
 
 ## Changing Parameter Values
@@ -221,9 +221,9 @@ pd.read_sql(**q.build(newParams=newParams).pd, con=con)
 # 42000 # 2010 to now, with new value for `start` provided.
 ```
 
-(end-reparam)=
+% (end-reparam)=
 
-(sql-dialects)=
+% (sql-dialects)=
 
 # SQL Dialects
 
