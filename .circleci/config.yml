@@ -108,7 +108,7 @@ jobs:
       - run:
           name: Run doc tests
           working_directory: docs
-          command: poetry run doctest
+          command: poetry run make doctest
 
   register:
     executor:
