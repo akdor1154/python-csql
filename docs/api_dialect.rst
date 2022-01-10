@@ -3,9 +3,13 @@ Controlling SQL Output
 
 .. _sql-dialects:
 
-.. include:: ../README.rst
-   :start-after: .. _sql-dialects:
-   :end-before: .. _end-sql-dialects:
+SQL Dialects
+============
+
+.. include:: ../README.md
+   :parser: myst_parser.sphinx_
+   :start-after: <!-- (sql-dialects)= -->
+   :end-before: <!-- (end-sql-dialects)= -->
 
 
 ``csql.dialect``
@@ -25,8 +29,8 @@ Controlling SQL Output
 
 .. _overrides:
 
-Further Customization
-=====================
+Advanced Customization
+======================
 
 If the :ref:`sql-dialects` system isn't enough, you have the ability to reach in
 and provide alternative rendering implementations. You can do anything here, from

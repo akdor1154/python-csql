@@ -8,8 +8,8 @@ Basic Usage
 
 .. include:: ../README.md
    :parser: myst_parser.sphinx_
-   :start-after: (intro)=
-   :end-before: (end-intro)=
+   :start-after: <!-- (intro)= -->
+   :end-before: <!-- (end-intro)= -->
 
 
 .. _params:
@@ -19,8 +19,8 @@ Easy Parameters
 
 .. include:: ../README.md
    :parser: myst_parser.sphinx_
-   :start-after: (params)=
-   :end-before: (end-params)=
+   :start-after: <!-- (params)= -->
+   :end-before: <!-- (end-params)= -->
 
 
 .. _reparam:
@@ -31,8 +31,8 @@ Changing Parameter Values
 
 .. include:: ../README.md
    :parser: myst_parser.sphinx_
-   :start-after: (reparam)=
-   :end-before: (end-reparam)=
+   :start-after: <!-- (reparam)= -->
+   :end-before: <!-- (end-reparam)= -->
 
 ``csql``
 ========

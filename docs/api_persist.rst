@@ -3,9 +3,10 @@
 Persistance / Caching
 *********************
 
-.. include:: ../README.rst
-   :start-after: .. _persist:
-   :end-before: .. _end-persist:
+.. include:: ../README.md
+   :parser: myst_parser.sphinx_
+   :start-after: <!-- (persist)= -->
+   :end-before: <!-- (end-persist)= -->
 
 
 How it Works

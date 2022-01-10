@@ -221,43 +221,50 @@ pd.read_sql(**q.build(newParams=newParams).pd, con=con)
 # 42000 # 2010 to now, with new value for `start` provided.
 ```
 
-<!-- end-reparam)= -->
+<!-- (end-reparam)= -->
+
+## SQL Dialects
 
 <!-- (sql-dialects)= -->
 
-# SQL Dialects
-
 Different dialects can be specified at render time, or as the default dialect of your Queries. Currently the only things dialects control are parameter rendering and limits, but I expect to see some scope creep around here...
-Dialects are instances of :class:`csql.dialect.SQLDialect` and can be found in :mod:`csql.dialect`. The default dialect is :class:`csql.dialect.DefaultDialect`, which uses a numeric parameter renderer. You can specify your own prefered dialect per-query:
+Dialects are instances of {class}`csql.dialect.SQLDialect` and can be found in {mod}`csql.dialect`. The default dialect is {class}`csql.dialect.DefaultDialect`, which uses a numeric parameter renderer. You can specify your own prefered dialect per-query:
 
->>> q = csql.Q(
-...   f"select 1 from thinger",
-...   dialect=csql.dialect.DuckDB
-... )
+```py
+q = csql.Q(
+	f"select 1 from thinger",
+	dialect=csql.dialect.DuckDB
+)
+```
 
 
-If you want to set a default, use ``functools.partial`` like so:
+If you want to set a default, use `functools.partial` like so:
 
->>> import functools
->>> Q = functools.partial(csql.Q, dialect=csql.dialect.DuckDB)
->>> q = Q(f"select 1 from thinger")
+```py
+import functools
+Q = functools.partial(csql.Q, dialect=csql.dialect.DuckDB)
+q = Q(f"select 1 from thinger")
+```
 
 You can also construct your own dialects:
 
->>> import csql.dialect
->>> MyDialect = csql.dialect.SQLDialect(
-...   paramstyle=csql.dialect.ParamStyle.qmark
-... )
+```py
+import csql.dialect
+MyDialect = csql.dialect.SQLDialect(
+  paramstyle=csql.dialect.ParamStyle.qmark
+)
+```
 
 There are presets for some common databases (see below), and I'm very happy to accept PRs for any
 others.
 
-.. _end-sql-dialects:
+<!-- (end-sql-dialects)= -->
 
-.. _persist:
 
 How to use Caching
 ==================
+
+<!-- (persist)= -->
 
 Once you have a few queries chained together, you may
 start to get annoyed by how long one or two big things at the start
@@ -265,32 +272,36 @@ take, and wonder if there's a way to stop them being executed each time.
 
 For example,
 
->>> q1 = Q(f'select id, date, rank() over (partition by name order by date) as rank from customers')
->>> q2 = Q(f'select date, count(*) from {q1}')
->>> print(q2.preview_pd(con))
+```py
+q1 = Q(f'select id, date, rank() over (partition by name order by date) as rank from customers')
+q2 = Q(f'select date, count(*) from {q1}')
+print(q2.preview_pd(con))
 # takes 2 mins becuase q1 is so slow
->>> print(q2.preview_pd(con))
+print(q2.preview_pd(con))
 # same thing again, also takes 2 mins
->>> q3 = Q(f'select max(date) from {q2}')
->>> print(q3.preview_pd(con))
+q3 = Q(f'select max(date) from {q2}')
+print(q3.preview_pd(con))
 # also takes 2 mins because q1 is so slow
+```
 
-The solution is to use :meth:`csql.Query.persist` on the slow query you want to re-use.
-Above, we could either do this on ``q1`` or ``q2``, depending on what works best with
-our database. I'll demonstrate ``q2``:
+The solution is to use {meth}`csql.Query.persist` on the slow query you want to re-use.
+Above, we could either do this on `q1` or `q2`, depending on what works best with
+our database. I'll demonstrate `q2`:
 
->>> q1 = Q(f'select id, date, rank() over (partition by name order by date) as rank from customers')
->>> cache = TempTableCacher(con)
->>> q2 = Q(f'select date, count(*) from {q1}').persist(cache) # <--- !!
->>> print(q2.preview_pd(con))
+```py
+q1 = Q(f'select id, date, rank() over (partition by name order by date) as rank from customers')
+cache = TempTableCacher(con)
+q2 = Q(f'select date, count(*) from {q1}').persist(cache) # <--- !!
+print(q2.preview_pd(con))
 # still takes 2 mins
->>> print(q2.preview_pd(con))
+print(q2.preview_pd(con))
 # now this is fast!
->>> q3 = Q(f'select max(date) from {q2}')
->>> print(q3.preview_pd(con))
+q3 = Q(f'select max(date) from {q2}')
+print(q3.preview_pd(con))
 # now this is fast as well!
+```
 
-The only builtin caching method is :class:`csql.contrib.persist.TempTableCacher`, however it's straightforward
-to write your own.
+The only general builtin caching method is {class}`csql.contrib.persist.TempTableCacher`, however it's straightforward
+to write your own. You may want to also see {mod}`csql.contrib.persist` as there is a Snowflake-specific example in there as well.
 
-.. _end-persist:
+<!-- (end-persist)= -->
