@@ -319,6 +319,23 @@ pywin32 = {version = ">=1.0", markers = "sys_platform == \"win32\" and platform_
 traitlets = "*"
 
 [[package]]
+name = "linkify-it-py"
+version = "1.0.3"
+description = "Links recognition library with FULL unicode support."
+category = "main"
+optional = true
+python-versions = ">=3.6"
+
+[package.dependencies]
+uc-micro-py = "*"
+
+[package.extras]
+benchmark = ["pytest", "pytest-benchmark"]
+dev = ["pre-commit", "isort", "flake8", "black"]
+doc = ["sphinx", "sphinx-book-theme", "myst-parser"]
+test = ["coverage", "pytest", "pytest-cov"]
+
+[[package]]
 name = "livereload"
 version = "2.6.3"
 description = "Python LiveReload is an awesome tool for web developers"
@@ -430,6 +447,7 @@ python-versions = ">=3.6"
 [package.dependencies]
 docutils = ">=0.15,<0.18"
 jinja2 = "*"
+linkify-it-py = {version = ">=1.0,<2.0", optional = true, markers = "extra == \"linkify\""}
 markdown-it-py = ">=1.0.0,<3.0.0"
 mdit-py-plugins = ">=0.3.0,<0.4.0"
 pyyaml = "*"
@@ -800,7 +818,6 @@ sphinxcontrib-htmlhelp = ">=2.0.0"
 sphinxcontrib-jsmath = "*"
 sphinxcontrib-qthelp = "*"
 sphinxcontrib-serializinghtml = ">=1.1.5"
-sphinxcontrib-websupport = {version = "*", optional = true, markers = "extra == \"docs\""}
 
 [package.extras]
 docs = ["sphinxcontrib-websupport"]
@@ -929,21 +946,6 @@ lint = ["flake8", "mypy", "docutils-stubs"]
 test = ["pytest"]
 
 [[package]]
-name = "sphinxcontrib-websupport"
-version = "1.2.4"
-description = "Sphinx API for Web Apps"
-category = "main"
-optional = true
-python-versions = ">=3.5"
-
-[package.dependencies]
-sphinxcontrib-serializinghtml = "*"
-
-[package.extras]
-lint = ["flake8"]
-test = ["pytest", "sqlalchemy", "whoosh", "sphinx"]
-
-[[package]]
 name = "toml"
 version = "0.10.2"
 description = "Python Library for Tom's Obvious, Minimal Language"
@@ -979,6 +981,17 @@ optional = false
 python-versions = ">=3.6"
 
 [[package]]
+name = "uc-micro-py"
+version = "1.0.1"
+description = "Micro subset of unicode data files for linkify-it-py projects."
+category = "main"
+optional = true
+python-versions = ">=3.6"
+
+[package.extras]
+test = ["coverage", "pytest", "pytest-cov"]
+
+[[package]]
 name = "urllib3"
 version = "1.26.8"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
@@ -1007,7 +1020,7 @@ pandas = ["pandas"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "e2e53697948e9ee25be6bc938809b3687425c1c4c6f1b699fab29b662b709723"
+content-hash = "05beef6415d49f894184cf374875034af7d2851572728a11d627f78cf40df2ab"
 
 [metadata.files]
 alabaster = [
@@ -1233,6 +1246,10 @@ jupyter-client = [
 jupyter-core = [
     {file = "jupyter_core-4.9.1-py3-none-any.whl", hash = "sha256:1c091f3bbefd6f2a8782f2c1db662ca8478ac240e962ae2c66f0b87c818154ea"},
     {file = "jupyter_core-4.9.1.tar.gz", hash = "sha256:dce8a7499da5a53ae3afd5a9f4b02e5df1d57250cf48f3ad79da23b4778cd6fa"},
+]
+linkify-it-py = [
+    {file = "linkify-it-py-1.0.3.tar.gz", hash = "sha256:2b3f168d5ce75e3a425e34b341a6b73e116b5d9ed8dbbbf5dc7456843b7ce2ee"},
+    {file = "linkify_it_py-1.0.3-py3-none-any.whl", hash = "sha256:11e29f00150cddaa8f434153f103c14716e7e097a8fd372d9eb1ed06ed91524d"},
 ]
 livereload = [
     {file = "livereload-2.6.3.tar.gz", hash = "sha256:776f2f865e59fde56490a56bcc6773b6917366bce0c267c60ee8aaf1a0959869"},
@@ -1669,10 +1686,6 @@ sphinxcontrib-serializinghtml = [
     {file = "sphinxcontrib-serializinghtml-1.1.5.tar.gz", hash = "sha256:aa5f6de5dfdf809ef505c4895e51ef5c9eac17d0f287933eb49ec495280b6952"},
     {file = "sphinxcontrib_serializinghtml-1.1.5-py2.py3-none-any.whl", hash = "sha256:352a9a00ae864471d3a7ead8d7d79f5fc0b57e8b3f95e9867eb9eb28999b92fd"},
 ]
-sphinxcontrib-websupport = [
-    {file = "sphinxcontrib-websupport-1.2.4.tar.gz", hash = "sha256:4edf0223a0685a7c485ae5a156b6f529ba1ee481a1417817935b20bde1956232"},
-    {file = "sphinxcontrib_websupport-1.2.4-py2.py3-none-any.whl", hash = "sha256:6fc9287dfc823fe9aa432463edd6cea47fa9ebbf488d7f289b322ffcfca075c7"},
-]
 toml = [
     {file = "toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b"},
     {file = "toml-0.10.2.tar.gz", hash = "sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f"},
@@ -1727,6 +1740,10 @@ traitlets = [
 typing-extensions = [
     {file = "typing_extensions-4.0.1-py3-none-any.whl", hash = "sha256:7f001e5ac290a0c0401508864c7ec868be4e701886d5b573a9528ed3973d9d3b"},
     {file = "typing_extensions-4.0.1.tar.gz", hash = "sha256:4ca091dea149f945ec56afb48dae714f21e8692ef22a395223bcd328961b6a0e"},
+]
+uc-micro-py = [
+    {file = "uc-micro-py-1.0.1.tar.gz", hash = "sha256:b7cdf4ea79433043ddfe2c82210208f26f7962c0cfbe3bacb05ee879a7fdb596"},
+    {file = "uc_micro_py-1.0.1-py3-none-any.whl", hash = "sha256:316cfb8b6862a0f1d03540f0ae6e7b033ff1fa0ddbe60c12cbe0d4cec846a69f"},
 ]
 urllib3 = [
     {file = "urllib3-1.26.8-py2.py3-none-any.whl", hash = "sha256:000ca7f471a233c2251c6c7023ee85305721bfdf18621ebff4fd17a8653427ed"},

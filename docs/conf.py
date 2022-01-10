@@ -59,6 +59,10 @@ autodoc_type_aliases = {
     'Key': 'csql.persist.Key'
 }
 
+# -- myst stuff
+myst_enable_extensions = ['linkify']
+tab_width = 4
+
 
 # -- sphinx-autodoc-typehints stuff
 #set_type_checking_flag = True
