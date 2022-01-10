@@ -105,6 +105,11 @@ jobs:
       - store_artifacts:
           path: docs/_build/html/
 
+      - run:
+          name: Run doc tests
+          working_directory: docs
+          command: poetry run doctest
+
   register:
     executor:
       name: publisher

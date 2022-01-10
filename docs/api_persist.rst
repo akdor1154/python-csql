@@ -18,16 +18,18 @@ The `retrieval` query is then used whenever the query is rendered, on its own or
 
 For the above example:
 
+>>> con = some_connection()
 >>> # define cache
->>> cache = TempTableCacher(con)
+>>> cache = csql.contrib.persist.TempTableCacher(con)
 >>> # define query, no execution yet
->>> q2 = Q(f'select date, count(*) from {q1}).persist(cache, 'q2') # note this time we gave a tag.
+>>> q1 = Q(f'select id, date, rank() over (partition by name order by date) as rank from customers')
+>>> q2 = Q(f'select date, count(*) from {q1}').persist(cache, 'q2') # note this time we gave a tag.
 
 >>> # reference it, still no execution
->>> q3 = Q(f'select count(*) from {q2})
+>>> q3 = Q(f'select count(*) from {q2}')
 
 >>> # build it in some way:
->>> q3.preview_pd(con) # or q3.db, q3.build(), etc.
+>>> q3.preview_pd(con) # or q3.db, q3.build(), etc. # doctest: +IGNORE_RESULT
 
 Now the fun happens:
 

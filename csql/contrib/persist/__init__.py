@@ -21,8 +21,10 @@ class TempTableCacher(Cacher):
     >>> cache = TempTableCacher(con)
     >>> q = Q('select * from slow_view').persist(cache)
     >>> q2 = Q(f'select count(*) from {q}') # does nothing
-    >>> q2.build().sql
-    'select * from csql_cache_None_1234...'
+    >>> print(q2.build().sql) #doctest: +ELLIPSIS 
+    with
+    _subQuery0 as (...)
+    select count(*) from _subQuery0
 
     """
     def __init__(self, connection: Any):

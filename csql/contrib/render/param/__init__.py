@@ -14,19 +14,22 @@ class UDFParameterRenderer(ParameterRenderer):
 	Example:
 
 	>>> p = Parameters(start=date(2021,5,5))
-	>>> q = Q(f'select * from purchases where purchase_date > {p['date']})
+	>>> q = Q(f'''select * from purchases where purchase_date > {p['start']}''')
 	>>> q.build().sql
-	select * from purchases where purchase_date > :1
-	>>> udf_body = Overrides(paramRenderer=UDFParameterRenderer)
-	>>> udf_body = q.build(overrides=udf_body).sql
-	>>> udf_body
-	select * from purchases where purchase_date > date
+	'select * from purchases where purchase_date > :1'
+	>>> from csql.contrib.render.param import UDFParameterRenderer
+	>>> udf_overrides = csql.Overrides(paramRenderer=UDFParameterRenderer)
+	>>> udf_body = q.build(overrides=udf_overrides).sql
+	>>> print(udf_body)
+	select * from purchases where purchase_date > start
+	>>> con = some_connection()
 	>>> con.cursor().execute(f'''
-	...   create or replace function my_func(date) as
+	...   create function my_func(date) as
 	...   $$
 	...   {udf_body}
 	...   $$
 	... ''')
+	>>> #
 
 	"""
 	def _renderScalarSql(self, index: int, key: Optional[str]) -> SQL:
