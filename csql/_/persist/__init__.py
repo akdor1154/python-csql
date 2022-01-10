@@ -1,4 +1,5 @@
 from __future__ import annotations
+from collections import defaultdict
 import functools
 from typing import TYPE_CHECKING
 from ..models.query import PreBuild, Query, QueryBit, QueryExtension, RenderedQuery
@@ -9,7 +10,6 @@ from csql import Q
 from abc import ABC, abstractmethod
 from typing import *
 import threading
-import asyncio
 import uuid
 import logging
 import pickle
@@ -43,10 +43,15 @@ def  cache_replacer(queryRenderer: QueryRenderer) -> QueryReplacer:
 
 Key = str # I keep changing my mind between str, int, bytes...
 
-class KeyLookup():
+class KeyLookup:
 
-    saved: Dict[Key, Awaitable[Query]] = {}
-    lock = threading.Lock()
+    saved: Dict[Key, Query] = {}
+    locks: Dict[Key, threading.Lock] = defaultdict(threading.Lock)
+    _lock = threading.Lock()
+
+    def _get_lock(self, key: Key) -> threading.Lock:
+        with self._lock:
+            return self.locks[key]
 
     def _get_key(self, rq: RenderedQuery, tag: Optional[str]) -> Key:
         key_long = pickle.dumps((rq.sql, tag, *rq.parameters))
@@ -57,42 +62,18 @@ class KeyLookup():
         rq = qr.render(q)
         key = self._get_key(rq, tag)
 
-        # def wrapped_save_fn() -> Query:
-        #     with self.lock:
-        #         if key not in self.saved:
-        #             logger.debug(f'Executing save function for rendered query {rq} with {tag=}')
-        #             self.saved[key] = asyncio.run(c._persist(rq, key, tag))
-        #         else:
-        #             logger.debug(f'Using cached result for rendered query {rq} with {tag=}')
-        #         result = self.saved[key]
-
-        #     return result
-
-        # return wrapped_save_fn
-
-        async def wrapped_save_fn() -> Query:
-            with self.lock:
+        def wrapped_save_fn() -> Query:
+            with self._get_lock(key):
                 if key not in self.saved:
-                    loop = asyncio.get_event_loop()
-                    # we have to make our own future here so we can await it multiple times if necessary.
-                    # if we were to put the task from _persist() into saved, we could only await it once.
-                    future = loop.create_future()
-                    self.saved[key] = future
-                    task = asyncio.create_task(c._persist(rq, key, tag))
+                    logger.debug(f'Executing save function for rendered query {rq} with {tag=}')
+                    self.saved[key] = c._persist(rq, key, tag)
+                else:
+                    logger.debug(f'Using cached result for rendered query {rq} with {tag=}')
+                result = self.saved[key]
 
-                    def task_done(t: 'asyncio.Task[Query]') -> None:
-                        try:
-                            future.set_result(t.result())
-                        except Exception as e:
-                            future.set_exception(e)
-                    task.add_done_callback(task_done)
+            return result
 
-
-                result_future = self.saved[key]
-
-            return await result_future
-
-        return lambda: asyncio.run(wrapped_save_fn())
+        return wrapped_save_fn
 
 KL = KeyLookup() # singleton
 
@@ -112,7 +93,7 @@ class Cacher(ABC):
         class MyCoolHanaCacher(Cacher):
             def __init__(self, con):
                 self.con = con
-            async def _persist(self, rq: RenderedQuery, key: str, tag: Optional[str]):
+            def _persist(self, rq: RenderedQuery, key: str, tag: Optional[str]):
                 # name our temp table - arbitrary, but if we make it some stable function of `key`
                 #   then we can avoid re-computing in future executions as well.
                 # Additionally, we put `tag` in there too to be nice to the user, but this isn\'t
@@ -139,7 +120,7 @@ class Cacher(ABC):
         return q._add_extensions(Persistable(self, tag))
 
     @abstractmethod
-    async def _persist(self, rq: csql.RenderedQuery, key: csql.persist.Key, tag: Optional[str]) -> csql.Query:
+    def _persist(self, rq: csql.RenderedQuery, key: csql.persist.Key, tag: Optional[str]) -> csql.Query:
         """
         This should take a RenderedQuery, save it (keyed by the given ``key``), and
         return a Query that returns the saved data.
@@ -172,31 +153,6 @@ class Cacher(ABC):
 
         if you were comfortable with leaving permanent tables around in your database.
 
-        While you do need to declare your ``_persist`` implementation as `async`, you don't need to worry about
-        actually writing a proper async implementation. Normal blocking database calls
-        are fine.
-
-
         """
         pass
-
-
-# class SnowflakeResultSetCacher(Cacher):
-#     def __init__(self, connection: 'snowflake.connector.Connection'):
-#         self._con = connection
-
-#     async def _persist(self, rq: RenderedQuery, key: int) -> Query:
-
-#         sql, params = rq
-
-#         logger.debug(f'Executing persist SQL:\n{sql}\nwith params: {params}')
-#         c = self._con.cursor()
-#         try:
-#             c.execute(sql, params)
-#             qid = c.sfqid
-#         finally:
-#             c.close()
-
-#         retrieve_sql = Q(f'''select * from table(result_scan('{qid}')''')
-#         return retrieve_sql
 

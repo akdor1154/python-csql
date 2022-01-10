@@ -27,7 +27,7 @@ class SnowflakeResultSetCacher(Cacher):
     def __init__(self, connection: snowflake.connector.Connection):
         self._con = connection
 
-    async def _persist(self, rq: RenderedQuery, key: Key, tag: Optional[str]) -> Query:
+    def _persist(self, rq: RenderedQuery, key: Key, tag: Optional[str]) -> Query:
 
         sql, params = rq
 
