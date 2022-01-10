@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.10.0
+
+### Breaking changes:
+  - Implementations of Cacher._persist should no longer be declared as async.
+
 ## v0.9.0
 
 ### Breaking changes:
