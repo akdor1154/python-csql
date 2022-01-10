@@ -96,9 +96,9 @@ def test_persist_chained():
 		hooked_saves = {}
 
 		class HookedTempTableCacher(TempTableCacher):
-			async def _persist(self, rq: RenderedQuery, key: Key, tag: Optional[str]) -> Query:
+			def _persist(self, rq: RenderedQuery, key: Key, tag: Optional[str]) -> Query:
 				hooked_saves[tag] = rq
-				return await super()._persist(rq, key, tag)
+				return super()._persist(rq, key, tag)
 		c = HookedTempTableCacher(con)
 
 		q1 = Q(f"select 'q1' as val").persist(c, 'q1')
