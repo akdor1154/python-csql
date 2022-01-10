@@ -9,6 +9,13 @@ Basic Usage
 .. include:: ../README.rst
    :end-before: .. _end-intro:
 
+
+.. _reparam:
+
+.. include:: ../README.rst
+   :start-after: .. _reparam:
+   :end-before: .. _end-reparam:
+
 ``csql``
 ========
 
@@ -17,7 +24,7 @@ Basic Usage
 
 .. automodule:: csql
    :members:
-   :exclude-members: Q, Parameters, Query, RenderedQuery
+   :exclude-members: Q, Parameters, Query, RenderedQuery, ParameterValue
    :undoc-members:
 
    Q()
@@ -44,9 +51,12 @@ Basic Usage
 
    Other
    -----
+   .. class:: ParameterValue()
 
-.. _reparam:
+      Valid parameter value. You can use any hashable value here (so str, int, float, date, .. ) all fine.
+      You can also use a ``Sequence`` of the above.
 
-.. include:: ../README.rst
-   :start-after: .. _reparam:
-   :end-before: .. _end-reparam:
+      Type alias for ``Hashable | Sequence[Hashable]``.
+   
+   .. autoclass:: ParameterPlaceholder()
+

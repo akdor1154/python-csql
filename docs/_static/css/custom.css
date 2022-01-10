@@ -1,21 +1,39 @@
 /* Newlines (\a) and spaces (\20) before each parameter */
+
+/*
 .sig-param::before {
     content: "\a\9";
     white-space: pre-wrap;
-}
+}*/
 
 /* Newline after the last parameter (so the closing bracket is on a new line) */
+/*
 dt em.sig-param:last-of-type::after {
     content: "\a";
     white-space: pre-wrap;
 }
 
-dt em.sig-param:first-of-type:last-of-type::before {
+dt em.sig-param:only-of-type::before {
     content: none
 }
 
-dt em.sig-param:first-of-type:last-of-type::after {
+dt em.sig-param:only-of-type::after {
     content: none
+}*/
+
+.sig-name + .sig-paren::after {
+    content: "\a\9";
+    white-space: pre-wrap;
+}
+
+.sig-param + .sig-param::before {
+    content: "\a\9";
+    white-space: pre-wrap;
+}
+
+.sig-param + .sig-paren::before {
+    content: "\a";
+    white-space: pre-wrap;
 }
 
 /* To have blue background of width of the block (instead of width of content) */

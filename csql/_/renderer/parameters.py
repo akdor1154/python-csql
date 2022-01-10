@@ -1,5 +1,6 @@
+from __future__ import annotations
 from typing import *
-from ..models.query import Parameters, ParameterList, ParameterPlaceholder
+from ..models.query import Parameters, ParameterList, ParameterPlaceholder, ScalarParameterValue
 from ..models.dialect import SQLDialect, ParamStyle
 from ..utils import assert_never
 from collections.abc import Collection as CollectionABC
@@ -9,8 +10,10 @@ import abc
 import collections
 from abc import ABC
 
-ScalarParameterValue = Any
 SQL = NewType('SQL', str)
+
+if TYPE_CHECKING:
+	import csql.render.param
 
 class ParamList:
 	_params: List[ScalarParameterValue]
@@ -36,6 +39,7 @@ class ParameterRenderer(ABC):
 	"""
 
 	renderedParams: ParamList
+	':meta private:'
 
 	@staticmethod
 	def get(dialect: SQLDialect) -> Type['ParameterRenderer']:
@@ -52,7 +56,7 @@ class ParameterRenderer(ABC):
 		self.renderedParams = ParamList()
 
 	@abc.abstractmethod
-	def _renderScalarSql(self, index: int, key: Optional[str]) -> SQL:
+	def _renderScalarSql(self, index: int, key: Optional[str]) -> csql.render.param.SQL:
 		"""
 		This is called once for each parameter that needs to be rendered
 		into a :class:`csql.RenderedQuery`. Implementations might be simple:

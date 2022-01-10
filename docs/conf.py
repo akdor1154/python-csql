@@ -33,6 +33,7 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.autosummary',
     'sphinx.ext.autodoc',
+    'sphinx.ext.viewcode',
     'sphinx_external_toc',
     'extensions.csql_docs'
 ]
@@ -52,6 +53,10 @@ autodoc_typehints = 'description'
 autodoc_default_options = {
     'members': True,
     'undoc-members': True
+}
+autodoc_type_aliases = {
+    'ParameterValue': 'csql.ParameterValue',
+    'Key': 'csql.persist.Key'
 }
 
 

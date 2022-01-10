@@ -23,6 +23,7 @@ if TYPE_CHECKING:
 	# function signatures, doco, etc.
 	import csql
 	import csql.dialect
+	import csql.persist
 
 import sys
 if sys.version_info >= (3, 9):
@@ -32,7 +33,7 @@ else:
 	import typing
 	_Sequence = typing.Sequence
 
-ScalarParameterValue = Any
+ScalarParameterValue = Hashable
 
 ParameterList = Tuple[ScalarParameterValue, ...]
 
@@ -98,9 +99,9 @@ class Query(QueryBit, InstanceTracking):
 
 	queryParts: Tuple[Union[str, QueryBit], ...]
 	':meta private:'
-	default_dialect: 'csql.dialect.SQLDialect'
+	default_dialect: csql.dialect.SQLDialect
 	':meta private:'
-	default_overrides: Optional['Overrides']
+	default_overrides: Optional[Overrides]
 	':meta private:'
 	_extensions: FrozenSet[QueryExtension]
 	':meta private:'
@@ -133,7 +134,7 @@ class Query(QueryBit, InstanceTracking):
 	def preview_pd(
 		self, con: Any, rows: int=10,
 		dialect: Optional[csql.dialect.SQLDialect] = None,
-		newParams: Optional[Dict[str, ScalarParameterValue]] = None,
+		newParams: Optional[Dict[str, ParameterValue]] = None,
 		overrides: Optional[csql.Overrides] = None
 	) -> pd.DataFrame:
 		"""
@@ -168,7 +169,7 @@ class Query(QueryBit, InstanceTracking):
 	def build(
 		self, *,
 		dialect: Optional[csql.dialect.SQLDialect] = None,
-		newParams: Optional[Dict[str, ScalarParameterValue]] = None,
+		newParams: Optional[Dict[str, ParameterValue]] = None,
 		overrides: Optional[csql.Overrides] = None,
 	) -> csql.RenderedQuery:
 		"""
@@ -247,9 +248,9 @@ class Query(QueryBit, InstanceTracking):
 		return self.build().db
 
 
-	def persist(self, cacher: 'Cacher', tag: Optional[str] = None) -> 'Query':
+	def persist(self, cacher: csql.persist.Cacher, tag: Optional[str] = None) -> csql.Query:
 		"""
-		Marks this query for persistance with the given :class:`csql.contrib.persist.Cacher`.
+		Marks this query for persistance with the given :class:`csql.persist.Cacher`.
 
 		See: :ref:`persist`
 
@@ -264,6 +265,8 @@ class Query(QueryBit, InstanceTracking):
 		"""
 		return cacher.persist(self, tag)
 
+ParameterValue = Union[Hashable, Collection[Hashable]]
+
 @dataclass(frozen=True)
 class ParameterPlaceholder(QueryBit, InstanceTracking):
 	"""
@@ -276,7 +279,7 @@ class ParameterPlaceholder(QueryBit, InstanceTracking):
 	"""
 	key: str
 	':meta private:'
-	value: Hashable
+	value: csql.ParameterValue
 	':meta private:'
 	_key_context: Optional[int] # allow people to pass multiple distinct parameters with the same key into a Query.
 
@@ -299,10 +302,10 @@ class Parameters:
 	See: :ref:`reparam`
 	"""
 
-	params: Dict[str, Hashable]
+	params: Dict[str, ParameterValue]
 	':meta private:'
 
-	def __init__(self, **kwargs: Any):
+	def __init__(self, **kwargs: ParameterValue):
 		self.params = {k: self._check_hashable_value(k, v) for k, v in kwargs.items()}
 
 	@staticmethod
@@ -322,7 +325,7 @@ class Parameters:
 		self.params[key] = val
 		return self[key]
 
-	def add(self, value: Optional[Any]=NOVALUE, /, **kwargs: Any) -> 'csql.ParameterPlaceholder':
+	def add(self, value: csql.ParameterValue=NOVALUE, /, **kwargs: csql.ParameterValue) -> csql.ParameterPlaceholder:
 		'''
 		Adds a single parameter into this Parameters, and returns it.
 		You don't normally need this (just add them directly when building :class:`Parameters`), but

@@ -125,6 +125,62 @@ The basic idea is to turn your queries into a CTE by keeping track of what build
 
 which is exactly the sort of unmaintainable and undebuggable monstrosity that this library is designed to help you avoid.
 
+.. _params:
+
+Easy Parameters
+===============
+
+Using proper SQL prepared statements is great to do, but can be annoying to maintain. Additionally, it can be incredibly
+annoying when you are trying to use a list from Python:
+
+.. code-block:: py
+
+   con = my_connection()
+   ids_i_want = [1, 2, 3]
+   with con.cursor() as c:
+      # uh oh, you can't do this
+      c.execute('select * from customers where id in :1', (ids_i_want,))
+
+       # you need to do something like this instead
+      c.execute('select * from customers where id in (:1, :2, :3), (ids_i_want[0], ids_i_want[1], ids_i_want[2],))
+
+``csql`` makes this much easier - you can embed your parameters naturally with string interpolation, and they will still be
+sent as proper parameterized statements.
+
+.. code-block:: py
+
+   p = Parameters(
+      ids_i_want = [1, 2, 3],
+      name = 'Jarrad'
+   )
+
+   get_customers = Q(f'''
+      select * from customers
+      where
+         ids in {p['ids_i_want']}
+         or name = {p['name']}
+   ''')
+
+   with con.cursor() as c:
+      c.execute(*get_customers.db)
+
+That final statement is actually equivalent to:
+
+.. code-block:: py
+
+   with con.cursor() as c:
+      c.execute('''
+         select * from customers
+         where
+            ids in (:1, :2, :3)
+            or name = :4
+      ''', [1, 2, 3, 'Jarrad'])
+
+
+.. code-block::sql
+
+.. _end-params:
+
 .. _end-intro:
 
 .. _reparam:
@@ -156,7 +212,7 @@ SQL Dialects
 ============
 
 Different dialects can be specified at render time, or as the default dialect of your Queries. Currently the only things dialects control are parameter rendering and limits, but I expect to see some scope creep around here...
-Dialects are instances of :class:`SQLDialect` and can be found in :mod:`csql.dialect`. The default dialect is :class:`DefaultDialect`, which uses a numeric parameter renderer. You can specify your own prefered dialect per-query:
+Dialects are instances of :class:`csql.dialect.SQLDialect` and can be found in :mod:`csql.dialect`. The default dialect is :class:`csql.dialect.DefaultDialect`, which uses a numeric parameter renderer. You can specify your own prefered dialect per-query:
 
 >>> q = csql.Q(
 ...   f"select 1 from thinger",

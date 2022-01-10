@@ -76,7 +76,7 @@ The builtin parameter renderers are found in :mod:`csql.render.param`.
       :private-members: _renderScalarSql
       :no-undoc-members:
 
-   .. attribute:: csql.render.param.ParameterRenderer.SQL
+   .. autoclass:: csql.render.param.SQL
 
       A ``NewType`` alias for a ``str`` representing a chunk of SQL.
 

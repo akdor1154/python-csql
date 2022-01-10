@@ -69,3 +69,7 @@ can be detected and re-used by the cacher where possible.
    .. autoclass:: Cacher
       :exclude-members: persist
       :private-members: _persist
+
+   .. class:: Key
+
+      A cache key. Type alias of ``str``.
