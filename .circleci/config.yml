@@ -101,6 +101,9 @@ jobs:
           name: Build docs
           working_directory: docs
           command:  poetry run make html SPHINXOPTS="-W --keep-going -n"
+      
+      - store_artifacts:
+          path: docs/_html/
 
   register:
     executor:
