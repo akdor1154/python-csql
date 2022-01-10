@@ -21,8 +21,8 @@ def Q(
 	Usage:
 
 	>>> p = Parameters(created_on=date(2020,1,1))
-	>>> q_cust  = Q(f'select name, customer_type from customers where created_on > {p['created_on']})
-	>>> q_count = Q(f'select customer_type, count(*) from {q1} group by rollup(type)')
+	>>> q_cust  = Q(f'''select name, customer_type from customers where created_on > {p['created_on']}''')
+	>>> q_count = Q(f'select customer_type, count(*) from {q_cust} group by rollup(type)')
 
 	See: :ref:`basic_usage`
 

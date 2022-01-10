@@ -60,6 +60,56 @@ jobs:
           name: pytest
           command: poetry run pytest
 
+  docs:
+    parameters:
+      python_docker_tag:
+        type: string
+    executor:
+      name: python_docker
+      python_docker_tag: << parameters.python_docker_tag >>
+    steps:
+      - run:
+          name: Install poetry
+          command: |
+            python -m pip install --upgrade poetry
+            poetry config virtualenvs.in-project true
+
+      - checkout
+
+      - restore_cache:
+          keys:
+            - >
+              v2
+              doc_python_artifacts
+              << parameters.python_docker_tag >>
+              {{ checksum "poetry.lock" }}
+
+      - run:
+          name: Install docs dependencies
+          command: poetry install -E docs
+
+      - save_cache:
+          key: >
+              v2
+              doc_python_artifacts
+              << parameters.python_docker_tag >>
+              {{ checksum "poetry.lock" }}
+          paths:
+            - .venv
+
+      - run:
+          name: Build docs
+          working_directory: docs
+          command:  poetry run make html SPHINXOPTS="-W --keep-going -n"
+      
+      - store_artifacts:
+          path: docs/_build/html/
+
+      - run:
+          name: Run doc tests
+          working_directory: docs
+          command: poetry run make doctest
+
   register:
     executor:
       name: publisher
@@ -86,9 +136,17 @@ workflows:
           filters:
             tags:
               only: /^v\d+\.\d+\.\d+.*$/
+      - docs:
+          matrix:
+            parameters:
+              python_docker_tag: ["3.8"] # match 3.8
+          filters:
+            tags:
+              only: /^v\d+\.\d+\.\d+.*$/
       - register:
           requires:
             - test
+            - docs
           context: Python CSQL
           filters:
             tags:

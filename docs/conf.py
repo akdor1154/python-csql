@@ -29,9 +29,12 @@ author = 'Jarrad Whitaker'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'myst_parser',
     'sphinx.ext.intersphinx',
     'sphinx.ext.autosummary',
     'sphinx.ext.autodoc',
+    'sphinx.ext.viewcode',
+    'sphinx.ext.doctest',
     'sphinx_external_toc',
     'extensions.csql_docs'
 ]
@@ -52,6 +55,72 @@ autodoc_default_options = {
     'members': True,
     'undoc-members': True
 }
+autodoc_type_aliases = {
+    'ParameterValue': 'csql.ParameterValue',
+    'Key': 'csql.persist.Key'
+}
+
+# -- myst stuff
+myst_enable_extensions = ['linkify']
+tab_width = 4
+
+# -- doctest stuff
+doctest_test_doctest_blocks = 'yes'
+
+doctest_global_setup = '''
+import csql
+import csql.dialect
+import csql.contrib.persist
+from csql import Q, Parameters
+from datetime import date, datetime
+
+
+import sqlite3
+def my_connection():
+   c = sqlite3.connect(':memory:')
+   c.execute('create view slow_view as select 123 as val')
+   return c
+
+class DummyCursor:
+    def execute(self, s: str, params = None):
+        return None
+
+    def __enter__(self, *args, **kwargs): return self
+    def __exit__(self, *args, **kwargs): return self.close()
+    def close(self): pass
+
+    @property
+    def description(self):
+        return ()
+
+    def fetchall(self):
+        return [[]]
+
+class DummyDatabase:
+    def cursor(self):
+        return DummyCursor()
+
+def some_connection():
+    return DummyDatabase()
+
+'''
+
+import doctest
+
+IGNORE_RESULT = doctest.register_optionflag('IGNORE_RESULT')
+
+from pprint import pprint
+pprint(doctest.OPTIONFLAGS_BY_NAME)
+
+OutputChecker = doctest.OutputChecker
+class CustomOutputChecker(OutputChecker):
+    def check_output(self, want, got, optionflags):
+        if IGNORE_RESULT & optionflags:
+            return True
+        return OutputChecker.check_output(self, want, got, optionflags)
+
+doctest.OutputChecker = CustomOutputChecker
+
 
 
 # -- sphinx-autodoc-typehints stuff

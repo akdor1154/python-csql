@@ -23,6 +23,7 @@ if TYPE_CHECKING:
 	# function signatures, doco, etc.
 	import csql
 	import csql.dialect
+	import csql.persist
 
 import sys
 if sys.version_info >= (3, 9):
@@ -32,7 +33,7 @@ else:
 	import typing
 	_Sequence = typing.Sequence
 
-ScalarParameterValue = Any
+ScalarParameterValue = Hashable
 
 ParameterList = Tuple[ScalarParameterValue, ...]
 
@@ -54,8 +55,9 @@ class RenderedQuery(NamedTuple):
 		"""
 		Gives dict of ``{'sql':sql, 'params':params}``, for usage like:
 
+		>>> con = my_connection()
 		>>> q = Q('select 123')
-		>>> pd.read_sql(**q.build().pd, con=con)
+		>>> pd.read_sql(**q.build().pd, con=con) # doctest: +IGNORE_RESULT
 
 		"""
 		return dict(
@@ -68,10 +70,14 @@ class RenderedQuery(NamedTuple):
 		"""
 		Returns a tuple of (sql, params), for usage like:
 
+		>>> con = my_connection()
 		>>> q = Q('select 123')
-		>>> con.cursor().execute(*q.build().db)
+		>>> con.cursor().execute(*q.build().db) # doctest: +IGNORE_RESULT
 		"""
 		return (self.sql, self.parameters)
+
+	def __repr__(self) -> str:
+		return f'RenderedQuery({repr(self.sql)}, {repr(self.parameters)})'
 
 class QueryBit(metaclass=ABCMeta):
 	pass
@@ -98,9 +104,9 @@ class Query(QueryBit, InstanceTracking):
 
 	queryParts: Tuple[Union[str, QueryBit], ...]
 	':meta private:'
-	default_dialect: 'csql.dialect.SQLDialect'
+	default_dialect: csql.dialect.SQLDialect
 	':meta private:'
-	default_overrides: Optional['Overrides']
+	default_overrides: Optional[Overrides]
 	':meta private:'
 	_extensions: FrozenSet[QueryExtension]
 	':meta private:'
@@ -133,7 +139,7 @@ class Query(QueryBit, InstanceTracking):
 	def preview_pd(
 		self, con: Any, rows: int=10,
 		dialect: Optional[csql.dialect.SQLDialect] = None,
-		newParams: Optional[Dict[str, ScalarParameterValue]] = None,
+		newParams: Optional[Dict[str, ParameterValue]] = None,
 		overrides: Optional[csql.Overrides] = None
 	) -> pd.DataFrame:
 		"""
@@ -141,14 +147,11 @@ class Query(QueryBit, InstanceTracking):
 
 		Usage:
 
-		>>> c = your_db.connect()
+		>>> c = my_connection()
 		>>> q = Q(f'''select 123 as val''')
 		>>> print(q.preview_pd(c))
-		+---+
-		|val|
-		|---|
-		|123|
-		+---+
+		   val
+		0  123
 
 
 		:param con: A DBAPI-compliant connection, passed directly to ``con`` arg of :func:`pandas.read_sql`.
@@ -168,7 +171,7 @@ class Query(QueryBit, InstanceTracking):
 	def build(
 		self, *,
 		dialect: Optional[csql.dialect.SQLDialect] = None,
-		newParams: Optional[Dict[str, ScalarParameterValue]] = None,
+		newParams: Optional[Dict[str, ParameterValue]] = None,
 		overrides: Optional[csql.Overrides] = None,
 	) -> csql.RenderedQuery:
 		"""
@@ -227,8 +230,10 @@ class Query(QueryBit, InstanceTracking):
 
 		Returns a dict of ``{'sql':sql, 'params':params}``, for usage like:
 
+		>>> import pandas as pd
+		>>> con = my_connection()
 		>>> q = Q('select 123')
-		>>> pd.read_sql(**q.pd, con=con)
+		>>> pd.read_sql(**q.pd, con=con)  # doctest: +IGNORE_RESULT
 
 		"""
 		return self.build().pd
@@ -240,29 +245,33 @@ class Query(QueryBit, InstanceTracking):
 
 		Returns a tuple of (sql, params), for usage like:
 
+		>>> con = my_connection()
 		>>> q = Q('select 123')
-		>>> con.cursor().execute(*q.db)
+		>>> con.cursor().execute(*q.db) # doctest: +IGNORE_RESULT
 
 		"""
 		return self.build().db
 
 
-	def persist(self, cacher: 'Cacher', tag: Optional[str] = None) -> 'Query':
+	def persist(self, cacher: csql.persist.Cacher, tag: Optional[str] = None) -> csql.Query:
 		"""
-		Marks this query for persistance with the given :class:`csql.contrib.persist.Cacher`.
+		Marks this query for persistance with the given :class:`csql.persist.Cacher`.
 
 		See: :ref:`persist`
 
 		Usage:
 
-		>>> cache = csql.contrib.cacher.TempTableCacher(con)
+		>>> con = some_connection()
+		>>> cache = csql.contrib.persist.TempTableCacher(con)
 		>>> q = Q(f'select 123 from something_slow').persist(cache)
-		>>> q.preview_pd(con) # slow
-		>>> q.preview_pd(con) # fast
+		>>> q.preview_pd(con) # slow # doctest: +IGNORE_RESULT
+		>>> q.preview_pd(con) # fast # doctest: +IGNORE_RESULT
 		>>> q2 = Q(f'select count(*) from {q}')
-		>>> q2.preview_pd(con) # also fast
+		>>> q2.preview_pd(con) # also fast # doctest: +IGNORE_RESULT
 		"""
 		return cacher.persist(self, tag)
+
+ParameterValue = Union[Hashable, Collection[Hashable]]
 
 @dataclass(frozen=True)
 class ParameterPlaceholder(QueryBit, InstanceTracking):
@@ -272,11 +281,14 @@ class ParameterPlaceholder(QueryBit, InstanceTracking):
 	you should need to do with it is interpolate it into a query:
 
 	>>> p = Parameters(param_you_want=123)
-	>>> Q(f'select {p['param_you_want']}')
+	>>> q = Q(f'select {p["param_you_want"]}')
+	>>> q.db
+	('select :1', (123,))
+
 	"""
 	key: str
 	':meta private:'
-	value: Hashable
+	value: csql.ParameterValue
 	':meta private:'
 	_key_context: Optional[int] # allow people to pass multiple distinct parameters with the same key into a Query.
 
@@ -291,7 +303,7 @@ class Parameters:
 	Usage:
 
 	>>> p = Parameters(
-	...   start=date(2019,1,1)
+	...   start=date(2019,1,1),
 	...   end=date(2020,1,1)
 	... )
 	>>> q = Q(f"select * from customers where {p['start']} <= date and date < {p['end']}")
@@ -299,10 +311,10 @@ class Parameters:
 	See: :ref:`reparam`
 	"""
 
-	params: Dict[str, Hashable]
+	params: Dict[str, ParameterValue]
 	':meta private:'
 
-	def __init__(self, **kwargs: Any):
+	def __init__(self, **kwargs: ParameterValue):
 		self.params = {k: self._check_hashable_value(k, v) for k, v in kwargs.items()}
 
 	@staticmethod
@@ -322,7 +334,7 @@ class Parameters:
 		self.params[key] = val
 		return self[key]
 
-	def add(self, value: Optional[Any]=NOVALUE, /, **kwargs: Any) -> 'csql.ParameterPlaceholder':
+	def add(self, value: csql.ParameterValue=NOVALUE, /, **kwargs: csql.ParameterValue) -> csql.ParameterPlaceholder:
 		'''
 		Adds a single parameter into this Parameters, and returns it.
 		You don't normally need this (just add them directly when building :class:`Parameters`), but
@@ -330,13 +342,13 @@ class Parameters:
 
 		Can be called as
 
-		>>> p.add('value')
-		# which will add a single parameter with an autogenerated name.
+		>>> p.add('value') # doctest: +IGNORE_RESULT
+		... # which will add a single parameter with an autogenerated name.
 
 		Can also be called as
 
-		>>> p.add(key='value')
-		# which will add a named parameter.
+		>>> p.add(key='value') # doctest: +IGNORE_RESULT
+		... # which will add a named parameter.
 
 		Useful in loops:
 

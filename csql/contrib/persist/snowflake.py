@@ -3,17 +3,28 @@
 for the Snowflake database. For this file to import properly, you'll need
 to make sure `snowflake-connector-python` is installed.
 """
+
+from __future__ import annotations
 from typing import *
 from . import Cacher, Key
 from csql import RenderedQuery, Query, Q
 if TYPE_CHECKING:
-    from snowflake.connector import Connection as SnowflakeConnection
+    import snowflake.connector
 import logging
 
 logger = logging.getLogger(__name__)
 
 class SnowflakeResultSetCacher(Cacher):
-    def __init__(self, connection: 'SnowflakeConnection'):
+
+    """
+    Caches queries using the `RESULT_SCAN` functionality of snowflake. This is nice because it means you
+    can kill your snowflake connection without losing temp tables, and the results are still cleaned up
+    properly by Snowflake in 7 days.
+
+    :type connection: `snowflake.connector.Connection <https://docs.snowflake.com/en/user-guide/python-connector-api.html#object-connection>`_
+    """
+
+    def __init__(self, connection: snowflake.connector.Connection):
         self._con = connection
 
     async def _persist(self, rq: RenderedQuery, key: Key, tag: Optional[str]) -> Query:

@@ -17,6 +17,7 @@ import hashlib
 
 if TYPE_CHECKING:
     import csql
+    import csql.persist
 
 logger = logging.getLogger(name=__name__)
 
@@ -138,7 +139,7 @@ class Cacher(ABC):
         return q._add_extensions(Persistable(self, tag))
 
     @abstractmethod
-    async def _persist(self, rq: csql.RenderedQuery, key: Key, tag: Optional[str]) -> csql.Query:
+    async def _persist(self, rq: csql.RenderedQuery, key: csql.persist.Key, tag: Optional[str]) -> csql.Query:
         """
         This should take a RenderedQuery, save it (keyed by the given ``key``), and
         return a Query that returns the saved data.

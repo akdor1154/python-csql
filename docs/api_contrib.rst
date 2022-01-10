@@ -8,7 +8,7 @@
    ``csql.contrib.persist``
    ========================
 
-   See also: :ref:`persistance`
+   See also: :ref:`persist`
 
    .. automodule:: csql.contrib.persist
 
@@ -24,4 +24,9 @@
    ``csql.contrib.render.param``
    =============================
    .. automodule:: csql.contrib.render.param
+      :no-members:
+
+      .. autoclass:: UDFParameterRenderer
+         :no-members:
+
 

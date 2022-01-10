@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import *
 from typing import NoReturn # py 3.6
 if TYPE_CHECKING:
@@ -26,7 +27,7 @@ def unique(gen: Iterable[T], fn:Callable[[T], Any] = hash) -> Iterable[T]:
 def assert_never(x: NoReturn) -> NoReturn:
 	assert False, f'Unhandled type: {type(x).__name__}'
 
-def limit_query(query: 'Query', rows: int, dialect: 'SQLDialect') -> 'Query':
+def limit_query(query: Query, rows: int, dialect: SQLDialect) -> Query:
 	from .api import Q
 	from .models.dialect import Limit
 	if dialect.limit is Limit.limit:

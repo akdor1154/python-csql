@@ -73,21 +73,24 @@ class SQLDialect:
 	"""
 	Represents settings of a SQL Dialect.
 
+	
 	>>> import functools
+	>>> from csql.dialect import SQLDialect, ParamStyle
 	>>> my_dialect=SQLDialect(paramstyle=ParamStyle.qmark)
-
+	>>> p = Parameters(value=123)
+	
 	To use as a once-off, pass to :meth:`csql.Query.build`:
 
-	>>> Q('select ...').build()
-	# builds normally
-	>>> Q('select ...').build(dialect=my_dialect)
-	# builds with `my_dialect`
+	>>> q = Q(f"select {p['value']}")
+	>>> q.build() # builds normally
+	RenderedQuery('select :1', (123,))
+	>>> q.build(dialect=my_dialect) # builds with `my_dialect`
+	RenderedQuery('select ?', (123,))
 
 	To set as a default, use ``functools.partial``:
 
 	>>> Q = functools.partial(csql.Q, dialect=my_dialect)
-	>>> q = Q('select ...')
-	# builds with `my_dialect`
+	>>> q = Q('select ...')	# builds with `my_dialect`
 
 	"""
 	paramstyle: csql.dialect.ParamStyle = ParamStyle.numeric

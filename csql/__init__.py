@@ -1,3 +1,4 @@
+from __future__ import annotations
 # anything exported through here is considered public api.
 # mypy: implicit-reexport
 from ._.api import (
@@ -6,6 +7,7 @@ from ._.api import (
 from ._.models.query import (
 	Query,
 	Parameters,
+	ParameterValue,
 	ParameterPlaceholder,
 	RenderedQuery,
 	ParameterList as _Deprecated_ParameterList
@@ -17,6 +19,7 @@ __all__ = [
 	'Q',
 	'Query',
 	'Parameters',
+	'ParameterValue'
 	'ParameterPlaceholder',
 	'RenderedQuery',
 	'ParameterList'

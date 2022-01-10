@@ -6,8 +6,33 @@
 Basic Usage
 ***********
 
-.. include:: ../README.rst
-   :end-before: .. _end-intro:
+.. include:: ../README.md
+   :parser: myst_parser.sphinx_
+   :start-after: <!-- (intro)= -->
+   :end-before: <!-- (end-intro)= -->
+
+
+.. _params:
+
+Easy Parameters
+===============
+
+.. include:: ../README.md
+   :parser: myst_parser.sphinx_
+   :start-after: <!-- (params)= -->
+   :end-before: <!-- (end-params)= -->
+
+
+.. _reparam:
+
+Changing Parameter Values
+=========================
+
+
+.. include:: ../README.md
+   :parser: myst_parser.sphinx_
+   :start-after: <!-- (reparam)= -->
+   :end-before: <!-- (end-reparam)= -->
 
 ``csql``
 ========
@@ -17,7 +42,7 @@ Basic Usage
 
 .. automodule:: csql
    :members:
-   :exclude-members: Q, Parameters, Query, RenderedQuery
+   :exclude-members: Q, Parameters, Query, RenderedQuery, ParameterValue
    :undoc-members:
 
    Q()
@@ -44,9 +69,12 @@ Basic Usage
 
    Other
    -----
+   .. class:: ParameterValue()
 
-.. _reparam:
+      Valid parameter value. You can use any hashable value here (so str, int, float, date, .. ) all fine.
+      You can also use a ``Sequence`` of the above.
 
-.. include:: ../README.rst
-   :start-after: .. _reparam:
-   :end-before: .. _end-reparam:
+      Type alias for ``Hashable | Sequence[Hashable]``.
+   
+   .. autoclass:: ParameterPlaceholder()
+
