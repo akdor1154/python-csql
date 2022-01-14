@@ -130,6 +130,7 @@ class NumericParameterRenderer(ParameterRenderer, ABC):
 		return self._renderIndex(index + self.paramNumberFrom)
 
 	def render(self, param: ParameterPlaceholder) -> SQL:
+		# should be able to hash(AutoKey) directly, but I was hitting a flakey test
 		key = (param._key_context or 0) ^ hash(param.key if isinstance(param.key, str) else param.key.k)
 
 		if key in self.renderedKeys:

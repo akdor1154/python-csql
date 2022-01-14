@@ -53,6 +53,14 @@ To customize rendering with your own implementations, pass an :class:`csql.Overr
    q = Q('select * from thingers where id = {p['val']})
    q.build(overrides=overrides)
 
+Like dialects, overrides will by default propagate if they've been set on referenced queries:
+
+   >>> from csql.overrides import Overrides
+   >>> o = Overrides()
+   >>> q1 = Q(f'select * from thinger', overrides=o)
+   >>> q2 = Q(f'select count(*) from {q1}')
+   >>> assert q2.default_overrides == o
+
 .. autoclass:: csql.Overrides
    :no-members:
 

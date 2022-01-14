@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 	import csql
 	import csql.dialect
 	import csql.persist
+	import csql.overrides
 
 import sys
 if sys.version_info >= (3, 9):
@@ -106,9 +107,9 @@ class Query(QueryBit, InstanceTracking):
 
 	queryParts: Tuple[Union[str, QueryBit], ...]
 	':meta private:'
-	default_dialect: csql.dialect.SQLDialect
+	default_dialect: Union[csql.dialect.SQLDialect, csql.dialect.InferOrDefault]
 	':meta private:'
-	default_overrides: Optional[Overrides]
+	default_overrides: Optional[Union[Overrides, csql.overrides.InferOrDefault]]
 	':meta private:'
 	_extensions: FrozenSet[QueryExtension]
 	':meta private:'
@@ -137,6 +138,16 @@ class Query(QueryBit, InstanceTracking):
 		return dataclasses.replace(self,
 			_extensions=self._extensions | set(e)
 		)
+	
+	def _default_dialect(self) -> SQLDialect:
+		from .dialect import InferOrDefault
+		d = self.default_dialect
+		return d.dialect if isinstance(d, InferOrDefault) else d
+
+	def _default_overrides(self) -> Optional[Overrides]:
+		from .overrides import InferOrDefault
+		o = self.default_overrides
+		return o.overrides if isinstance(o, InferOrDefault) else o
 
 	def preview_pd(
 		self, con: Any, rows: int=10,
@@ -163,7 +174,7 @@ class Query(QueryBit, InstanceTracking):
 		import pandas as pd
 		from csql import Q
 		from ..utils import limit_query
-		dialect = dialect or self.default_dialect
+		dialect = dialect or self._default_dialect() #TODO - is this needed?
 		previewQ = limit_query(self, rows, dialect)
 		return pd.read_sql(
 			**previewQ.build(dialect=dialect, newParams=newParams, overrides=overrides).pd,
@@ -186,14 +197,14 @@ class Query(QueryBit, InstanceTracking):
 		:param newParams: A dictionary of ``{'key': value}`` to override any parameters. See: :ref:`reparam`.
 		:param overrides: An optional :class:`csql.Overrides` to override how rendering workd. See: :ref:`overrides`.
 		"""
-		dialect = dialect or self.default_dialect
+		dialect = dialect or self._default_dialect()
 		from ..renderer.query import BoringSQLRenderer, QueryRenderer
 		from ..renderer.parameters import ParameterRenderer
 		from .overrides import Overrides
 		from ..persist import cache_replacer
 		from .query_replacers import replace_queries_in_tree, params_replacer, pre_build_replacer
 
-		overrides = overrides or self.default_overrides or Overrides()
+		overrides = overrides or self._default_overrides() or Overrides()
 
 		ParamRenderer = (
 			overrides.paramRenderer

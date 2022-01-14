@@ -143,3 +143,8 @@ DefaultDialect = SQLDialect(
 	limit=Limit.limit
 )
 '''The default dialect for CSQL.'''
+
+import dataclasses
+@dataclasses.dataclass(frozen=True)
+class InferOrDefault:
+	dialect: SQLDialect

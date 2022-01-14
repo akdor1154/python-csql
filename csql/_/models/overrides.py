@@ -12,3 +12,8 @@ if TYPE_CHECKING:
 class Overrides:
     paramRenderer: Optional[Type[csql.render.param.ParameterRenderer]] = None
     queryRenderer: Optional[Type[csql.render.query.QueryRenderer]] = None
+
+import dataclasses
+@dataclasses.dataclass(frozen=True)
+class InferOrDefault:
+    overrides: Optional[Overrides]
