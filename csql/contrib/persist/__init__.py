@@ -33,7 +33,7 @@ class TempTableCacher(Cacher):
     def _persist(self, rq: RenderedQuery, key: Key, tag: Optional[str]) -> Query:
         table_name = f'"csql_cache_{tag}_{key}"'
 
-        sql, params = rq
+        sql, params, _names = rq
 
         create_sql = RenderedQuery(
             sql=f'''
@@ -41,7 +41,8 @@ class TempTableCacher(Cacher):
             as
             {sql}
             ''',
-            parameters=params
+            parameters=params,
+            parameter_names=_names
         )
 
         logger.debug(f'Executing persist SQL:\n{create_sql.sql}\nwith params: {create_sql.parameters}')

@@ -5,9 +5,11 @@ from csql.render.query import QueryRenderer
 def test_renderer_override():
 	class MySQLRenderer(QueryRenderer):
 		def _render(self, query: Query) -> RenderedQuery:
+			values, names = self.paramRenderer.renderList()
 			return RenderedQuery(
 				sql='hello hello',
-				parameters=self.paramRenderer.renderList()
+				parameters=values,
+				parameter_names=names
 			)
 
 	p = Parameters(
@@ -17,5 +19,6 @@ def test_renderer_override():
 
 	assert q.build() == RenderedQuery(
 		sql="hello hello",
-		parameters=()
+		parameters=(),
+		parameter_names=(),
 	)

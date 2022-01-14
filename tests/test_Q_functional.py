@@ -18,6 +18,7 @@ def test_cte_params():
 		select 2 join _subQuery0'''
 	).strip()
 	assert r.parameters == ('abc',)
+	assert r.parameter_names == ('abc',)
 
 
 def test_cte_params_2():
@@ -36,7 +37,7 @@ def test_cte_params_2():
 		select 2 join _subQuery0 where val = :2'''
 	).strip()
 	assert r.parameters == ('abc', 'def')
-
+	assert r.parameter_names == ('abc', 'abc')
 
 def test_reused_params():
 	p = Parameters(abc='abc', bcd='bcd')
@@ -53,6 +54,7 @@ def test_reused_params():
 		select 2 join _subQuery0 where val = :2 or val = :1'''
 	).strip()
 	assert r.parameters == ('abc', 'bcd')
+	assert r.parameter_names == ('abc', 'bcd')
 
 def test_indenting():
 	q1 = Q(f"""
@@ -99,6 +101,7 @@ def test_default_dialect():
 
 	assert r.sql == 'select 1 where val = ?'
 	assert r.parameters == ('abc',)
+	assert r.parameter_names == ('abc',)
 
 def test_preview_pd():
 	import sqlite3

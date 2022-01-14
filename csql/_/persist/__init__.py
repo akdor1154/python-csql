@@ -60,6 +60,7 @@ class KeyLookup:
 
     def _make_save_fn(self, q: Query, qr: QueryRenderer, c: 'Cacher', tag: Optional[str]) -> Callable[[], Query]:
         rq = qr.render(q)
+        # TODO  should be rq = q.build(overrides, dialect)
         key = self._get_key(rq, tag)
 
         def wrapped_save_fn() -> Query:

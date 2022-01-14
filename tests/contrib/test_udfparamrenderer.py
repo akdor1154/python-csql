@@ -10,5 +10,6 @@ def test_contrib_param_render_udf() -> None:
 
 	assert q.build() == RenderedQuery(
 		sql="select 1 where abc = abc",
-		parameters=('abcval',)
+		parameters=('abcval',),
+		parameter_names=('abc',)
 	)

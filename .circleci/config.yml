@@ -99,8 +99,7 @@ jobs:
 
       - run:
           name: Build docs
-          working_directory: docs
-          command:  poetry run make html SPHINXOPTS="-W --keep-going -n"
+          command: make docs
       
       - store_artifacts:
           path: docs/_build/html/

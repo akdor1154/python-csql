@@ -4,7 +4,8 @@ def test_Q_str():
 	q = Q("select 1")
 	assert q.build() == RenderedQuery(
 		sql="select 1",
-		parameters=()
+		parameters=(),
+		parameter_names=()
 	)
 
 def test_Q_dep():

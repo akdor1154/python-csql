@@ -84,6 +84,8 @@ The builtin parameter renderers are found in :mod:`csql.render.param`.
 
       A ``NewType`` alias for a ``str`` representing a chunk of SQL.
 
+   .. autoclass:: csql.render.param.AutoKey
+
 Query Renderering
 -----------------
 

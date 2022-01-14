@@ -48,6 +48,8 @@ class RenderedQuery(NamedTuple):
 	''' The rendered SQL, ready to be passed to a database. '''
 	parameters: ParameterList
 	''' A tuple of parameters, to go along with the SQL. '''
+	parameter_names: Tuple[Optional[str], ...]
+	''' A tuple of parameter names that the parameters were passed as. '''
 
 	# utility properties for easy splatting
 	@property
@@ -216,12 +218,13 @@ class Query(QueryBit, InstanceTracking):
 		new_self = replace_queries_in_tree(pre_build_replacer(), new_self)
 
 		queryRenderer = QR(ParamRenderer, dialect=dialect)
-		rendered = queryRenderer.render(new_self)
+		return queryRenderer.render(new_self)
 
-		return RenderedQuery(
-			sql=rendered.sql,
-			parameters=rendered.parameters
-		)
+		# return RenderedQuery(
+		# 	sql=rendered.sql,
+		# 	parameters=rendered.parameters
+		# 	parameter_names = rendered.parameter_names
+		# )
 
 	@property
 	def pd(self) -> Dict[str, Any]:
@@ -286,12 +289,18 @@ class ParameterPlaceholder(QueryBit, InstanceTracking):
 	('select :1', (123,))
 
 	"""
-	key: str
+	key: Union[str, AutoKey]
 	':meta private:'
 	value: csql.ParameterValue
 	':meta private:'
 	_key_context: Optional[int] # allow people to pass multiple distinct parameters with the same key into a Query.
 
+@dataclass(frozen=True)
+class AutoKey:
+	"""
+	A wrapper for a parameter key, indicating it was generated automatically by :meth:`csql.Parameters.add`.
+	"""
+	k: str
 
 class Parameters:
 	"""
@@ -311,14 +320,14 @@ class Parameters:
 	See: :ref:`reparam`
 	"""
 
-	params: Dict[str, ParameterValue]
+	params: Dict[Union[str, AutoKey], ParameterValue]
 	':meta private:'
 
 	def __init__(self, **kwargs: ParameterValue):
 		self.params = {k: self._check_hashable_value(k, v) for k, v in kwargs.items()}
 
 	@staticmethod
-	def _check_hashable_value(key: str, val: Any) -> Hashable:
+	def _check_hashable_value(key: Union[str, AutoKey], val: Any) -> Hashable:
 		if isinstance(val, Collection) and not isinstance(val, str):
 			val = tuple(val)
 		try:
@@ -327,7 +336,7 @@ class Parameters:
 		except TypeError as e:
 			raise ValueError(f'Refusing to add {key}:{val} - parameter values need to be hashable.') from e
 
-	def _add(self, key: str, val: Any) -> ParameterPlaceholder:
+	def _add(self, key: Union[str, AutoKey], val: Any) -> ParameterPlaceholder:
 		if key in self.params:
 			raise ValueError(f'Refusing to add {key}: it is already in this set of Parameters (with value {self.params[key]}).')
 		val = self._check_hashable_value(key, val)
@@ -373,9 +382,9 @@ class Parameters:
 		if not (passed_arg ^ passed_kw):
 			raise ValueError('You need to call either add(val) or add(key=val)')
 		if passed_arg:
-			generate_keys = (f'_add_{i}' for i in itertools.count())
-			key = next(k for k in generate_keys if k not in self.params)
-			return self._add(key, value)
+			generate_keys = (AutoKey(f'_add_{i}') for i in itertools.count())
+			auto_key = next(k for k in generate_keys if k not in self.params)
+			return self._add(auto_key, value)
 		elif passed_kw:
 			[(key, val)] = kwargs.items()
 			return self._add(key, val)
@@ -384,7 +393,7 @@ class Parameters:
 	def __contains__(self, key: str) -> bool:
 		return self.params.__contains__(key)
 
-	def __getitem__(self, key: str) -> ParameterPlaceholder:
+	def __getitem__(self, key: Union[str, AutoKey]) -> ParameterPlaceholder:
 		paramVal = self.params[key] # check existence
 		return ParameterPlaceholder(key=key, value=paramVal, _key_context=id(self))
 

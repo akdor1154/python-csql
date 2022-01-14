@@ -64,7 +64,8 @@ def params_replacer(newParams: Optional[Dict[str, Any]]) -> QueryReplacer:
 		assert newParams is not None # make mypy happy
 		_newParams = Parameters(**newParams) # checks if hashable.
 
-		if (isinstance(p, ParameterPlaceholder) and p.key in _newParams):
+		if (isinstance(p, ParameterPlaceholder) and isinstance(p.key, str) and p.key in _newParams):
+			print(f'replacing {p.key}, current {p.value}, repl {_newParams[p.key]} ')
 			return _newParams[p.key]
 		else:
 			return p
