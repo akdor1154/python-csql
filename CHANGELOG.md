@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.11.0
+
+### New stuff:
+  - Dialects and Overrides will be inferred from previous queries where possible.
+  - RenderedQuery now has a third member, `parameter_names`.
+
+### Deprecations:
+  - `csql.Overrides` moved to `csql.overrides.Overrides`.
+
 ## v0.10.0
 
 ### Breaking changes:
