@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "csql"
 description = "Simple library for writing composeable SQL queries"
-version = "0.11.0-alpha.0"
+version = "0.11.0-alpha.1"
 authors = ["Jarrad Whitaker <akdor1154@gmail.com>"]
 license = "LGPL-3.0-or-later"
 readme = "README.md"
