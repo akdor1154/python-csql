@@ -147,4 +147,5 @@ DefaultDialect = SQLDialect(
 import dataclasses
 @dataclasses.dataclass(frozen=True)
 class InferOrDefault:
-	dialect: SQLDialect
+	''' A wrapper to flag that this query should use a previous query\'s dialect if not otherwise specified. '''
+	dialect: csql.dialect.SQLDialect

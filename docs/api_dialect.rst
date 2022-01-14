@@ -17,14 +17,15 @@ SQL Dialects
 
 .. automodule:: csql.dialect
    :imported-members:
-   :exclude-members: SQLDialect,ParamStyle,Limit
+   :exclude-members: SQLDialect,ParamStyle,Limit,InferOrDefault
 
 
-.. autoclass:: SQLDialect
-   :exclude-members: paramstyle, limit
+   .. autoclass:: SQLDialect
+      :exclude-members: paramstyle, limit
 
-.. autoclass:: csql.dialect.ParamStyle()
-.. autoclass:: csql.dialect.Limit()
+   .. autoclass:: csql.dialect.ParamStyle()
+   .. autoclass:: csql.dialect.Limit()
+   .. autoclass:: csql.dialect.InferOrDefault()
 
 
 .. _overrides:
@@ -37,7 +38,7 @@ and provide alternative rendering implementations. You can do anything here, fro
 rendering parameters differently, all the way through to pre-processing and assembling
 Queries in an arbitrary way.
 
-To customize rendering with your own implementations, pass an :class:`csql.Overrides` to
+To customize rendering with your own implementations, pass an :class:`csql.overrides.Overrides` to
 :meth:`csql.Query.build` or :func:`csql.Q` ``overrides``. For example:
 
 .. code-block:: py
@@ -61,8 +62,13 @@ Like dialects, overrides will by default propagate if they've been set on refere
    >>> q2 = Q(f'select count(*) from {q1}')
    >>> assert q2.default_overrides == o
 
-.. autoclass:: csql.Overrides
-   :no-members:
+.. automodule:: csql.overrides
+
+   .. autoclass:: csql.overrides.Overrides
+      :no-members:
+
+   .. autoclass:: csql.overrides.InferOrDefault
+      :no-members:
 
 Parameter Rendering
 -------------------

@@ -16,4 +16,4 @@ class Overrides:
 import dataclasses
 @dataclasses.dataclass(frozen=True)
 class InferOrDefault:
-    overrides: Optional[Overrides]
+    overrides: Optional[csql.overrides.Overrides]

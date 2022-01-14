@@ -153,7 +153,7 @@ class Query(QueryBit, InstanceTracking):
 		self, con: Any, rows: int=10,
 		dialect: Optional[csql.dialect.SQLDialect] = None,
 		newParams: Optional[Dict[str, ParameterValue]] = None,
-		overrides: Optional[csql.Overrides] = None
+		overrides: Optional[csql.overrides.Overrides] = None
 	) -> pd.DataFrame:
 		"""
 		Return a small dataframe to preview the results of this query.
@@ -185,7 +185,7 @@ class Query(QueryBit, InstanceTracking):
 		self, *,
 		dialect: Optional[csql.dialect.SQLDialect] = None,
 		newParams: Optional[Dict[str, ParameterValue]] = None,
-		overrides: Optional[csql.Overrides] = None,
+		overrides: Optional[csql.overrides.Overrides] = None,
 	) -> csql.RenderedQuery:
 		"""
 		Build this :class:`csql.Query` into a :class:`csql.RenderedQuery`.
@@ -195,7 +195,7 @@ class Query(QueryBit, InstanceTracking):
 
 		:param dialect: An optional :class:`csql.dialect.SQLDialect` to render as. See :ref:`sql-dialects`.
 		:param newParams: A dictionary of ``{'key': value}`` to override any parameters. See: :ref:`reparam`.
-		:param overrides: An optional :class:`csql.Overrides` to override how rendering workd. See: :ref:`overrides`.
+		:param overrides: An optional :class:`csql.overrides.Overrides` to override how rendering workd. See: :ref:`overrides`.
 		"""
 		dialect = dialect or self._default_dialect()
 		from ..renderer.query import BoringSQLRenderer, QueryRenderer

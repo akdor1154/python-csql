@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 def Q(
 	sql: str,
 	dialect: Union[csql.dialect.SQLDialect, csql.dialect.InferOrDefault] = _dialect.InferOrDefault(DefaultDialect),
-	overrides: Union[Optional[csql.Overrides], csql.overrides.InferOrDefault] = _overrides.InferOrDefault(None)
+	overrides: Union[Optional[csql.overrides.Overrides], csql.overrides.InferOrDefault] = _overrides.InferOrDefault(None)
 ) -> 'csql.Query':
 	"""
 	Create a :class:`csql.Query`.
@@ -36,7 +36,7 @@ def Q(
 
 	:param dialect: A default :class:`dialect<csql.dialect.SQLDialect>` to use when building this Query.
 		By default, if this Query references another Query, the references Query's dialects will be used.
-	:param overrides: A default set of :class:`overrides<csql.Overrides>` to use when building this Query.
+	:param overrides: A default set of :class:`overrides<csql.overrides.Overrides>` to use when building this Query.
 		By default, if this Query references another Query, the references Query's overrides will be used.
 
 	"""

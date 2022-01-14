@@ -255,6 +255,9 @@ q2 = csql.Q('select count(*) from {q1})
 assert q2.default_dialect == csql.dialect.Snowflake
 ```
 
+If you reference multiple queries with conflicting dialects, you'll get an error. Normally this is because you've actually
+forgotten to specify something somewhere. If you're doing this on purpose, override by setting `dialect=` to `Q` manually.
+
 ### DIY Dialects 
 
 You can construct your own dialects:
