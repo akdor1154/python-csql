@@ -54,11 +54,11 @@ jobs:
 
       - run:
           name: mypy
-          command: poetry run mypy csql tests
+          command: make mypy
 
       - run:
           name: pytest
-          command: poetry run pytest
+          command: make test
 
   docs:
     parameters:
@@ -106,8 +106,7 @@ jobs:
 
       - run:
           name: Run doc tests
-          working_directory: docs
-          command: poetry run make doctest
+          command: make doctest
 
   register:
     executor:
