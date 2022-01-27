@@ -237,7 +237,6 @@ q = csql.Q(
 )
 ```
 
-
 If you want to set a default, use `functools.partial` like so:
 
 ```py
@@ -246,7 +245,22 @@ Q = functools.partial(csql.Q, dialect=csql.dialect.DuckDB)
 q = Q(f"select 1 from thinger")
 ```
 
-You can also construct your own dialects:
+### Inferred Dialects
+
+If a query `q2` references a previous query `q1`, and `q1` has a dialect specified, then `q2` will use `q1`'s dialect by default.
+
+```py
+q1 = csql.Q('select 1 from thinger', dialect=csql.dialect.Snowflake)
+q2 = csql.Q('select count(*) from {q1})
+assert q2.default_dialect == csql.dialect.Snowflake
+```
+
+If you reference multiple queries with conflicting dialects, you'll get an error. Normally this is because you've actually
+forgotten to specify something somewhere. If you're doing this on purpose, override by setting `dialect=` to `Q` manually.
+
+### DIY Dialects 
+
+You can construct your own dialects:
 
 ```py
 import csql.dialect
@@ -257,6 +271,7 @@ MyDialect = csql.dialect.SQLDialect(
 
 There are presets for some common databases (see below), and I'm very happy to accept PRs for any
 others.
+
 
 <!-- (end-sql-dialects)= -->
 

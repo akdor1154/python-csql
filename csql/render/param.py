@@ -11,3 +11,4 @@ from .._.renderer.parameters import (
 	ColonNumeric,
 	DollarNumeric
 )
+from .._.models.query import AutoKey

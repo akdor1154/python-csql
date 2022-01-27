@@ -29,7 +29,7 @@ class SnowflakeResultSetCacher(Cacher):
 
     def _persist(self, rq: RenderedQuery, key: Key, tag: Optional[str]) -> Query:
 
-        sql, params = rq
+        sql, params, _param_names = rq
 
         logger.debug(f'Executing persist SQL:\n{sql}\nwith params: {params}')
         c = self._con.cursor()

@@ -59,12 +59,11 @@ def params_replacer(newParams: Optional[Dict[str, Any]]) -> QueryReplacer:
 	''' This builds a QueryReplacer that handles re-parameterization. '''
 	if newParams is None:
 		return lambda q: q
+
+	_newParams = Parameters(**newParams) # checks if hashable.
 	
 	def part_replacer(p: Union[str, QueryBit]) -> Union[str, QueryBit]:
-		assert newParams is not None # make mypy happy
-		_newParams = Parameters(**newParams) # checks if hashable.
-
-		if (isinstance(p, ParameterPlaceholder) and p.key in _newParams):
+		if (isinstance(p, ParameterPlaceholder) and isinstance(p.key, str) and p.key in _newParams):
 			return _newParams[p.key]
 		else:
 			return p

@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 	import csql
 	import csql.dialect
 	import csql.persist
+	import csql.overrides
 
 import sys
 if sys.version_info >= (3, 9):
@@ -48,6 +49,8 @@ class RenderedQuery(NamedTuple):
 	''' The rendered SQL, ready to be passed to a database. '''
 	parameters: ParameterList
 	''' A tuple of parameters, to go along with the SQL. '''
+	parameter_names: Tuple[Optional[str], ...]
+	''' A tuple of parameter names that the parameters were passed as. '''
 
 	# utility properties for easy splatting
 	@property
@@ -104,9 +107,9 @@ class Query(QueryBit, InstanceTracking):
 
 	queryParts: Tuple[Union[str, QueryBit], ...]
 	':meta private:'
-	default_dialect: csql.dialect.SQLDialect
+	default_dialect: Union[csql.dialect.SQLDialect, csql.dialect.InferOrDefault]
 	':meta private:'
-	default_overrides: Optional[Overrides]
+	default_overrides: Optional[Union[Overrides, csql.overrides.InferOrDefault]]
 	':meta private:'
 	_extensions: FrozenSet[QueryExtension]
 	':meta private:'
@@ -135,12 +138,22 @@ class Query(QueryBit, InstanceTracking):
 		return dataclasses.replace(self,
 			_extensions=self._extensions | set(e)
 		)
+	
+	def _default_dialect(self) -> SQLDialect:
+		from .dialect import InferOrDefault
+		d = self.default_dialect
+		return d.dialect if isinstance(d, InferOrDefault) else d
+
+	def _default_overrides(self) -> Optional[Overrides]:
+		from .overrides import InferOrDefault
+		o = self.default_overrides
+		return o.overrides if isinstance(o, InferOrDefault) else o
 
 	def preview_pd(
 		self, con: Any, rows: int=10,
 		dialect: Optional[csql.dialect.SQLDialect] = None,
 		newParams: Optional[Dict[str, ParameterValue]] = None,
-		overrides: Optional[csql.Overrides] = None
+		overrides: Optional[csql.overrides.Overrides] = None
 	) -> pd.DataFrame:
 		"""
 		Return a small dataframe to preview the results of this query.
@@ -161,7 +174,7 @@ class Query(QueryBit, InstanceTracking):
 		import pandas as pd
 		from csql import Q
 		from ..utils import limit_query
-		dialect = dialect or self.default_dialect
+		dialect = dialect or self._default_dialect() #TODO - is this needed?
 		previewQ = limit_query(self, rows, dialect)
 		return pd.read_sql(
 			**previewQ.build(dialect=dialect, newParams=newParams, overrides=overrides).pd,
@@ -172,7 +185,7 @@ class Query(QueryBit, InstanceTracking):
 		self, *,
 		dialect: Optional[csql.dialect.SQLDialect] = None,
 		newParams: Optional[Dict[str, ParameterValue]] = None,
-		overrides: Optional[csql.Overrides] = None,
+		overrides: Optional[csql.overrides.Overrides] = None,
 	) -> csql.RenderedQuery:
 		"""
 		Build this :class:`csql.Query` into a :class:`csql.RenderedQuery`.
@@ -182,16 +195,16 @@ class Query(QueryBit, InstanceTracking):
 
 		:param dialect: An optional :class:`csql.dialect.SQLDialect` to render as. See :ref:`sql-dialects`.
 		:param newParams: A dictionary of ``{'key': value}`` to override any parameters. See: :ref:`reparam`.
-		:param overrides: An optional :class:`csql.Overrides` to override how rendering workd. See: :ref:`overrides`.
+		:param overrides: An optional :class:`csql.overrides.Overrides` to override how rendering workd. See: :ref:`overrides`.
 		"""
-		dialect = dialect or self.default_dialect
+		dialect = dialect or self._default_dialect()
 		from ..renderer.query import BoringSQLRenderer, QueryRenderer
 		from ..renderer.parameters import ParameterRenderer
 		from .overrides import Overrides
 		from ..persist import cache_replacer
 		from .query_replacers import replace_queries_in_tree, params_replacer, pre_build_replacer
 
-		overrides = overrides or self.default_overrides or Overrides()
+		overrides = overrides or self._default_overrides() or Overrides()
 
 		ParamRenderer = (
 			overrides.paramRenderer
@@ -216,12 +229,13 @@ class Query(QueryBit, InstanceTracking):
 		new_self = replace_queries_in_tree(pre_build_replacer(), new_self)
 
 		queryRenderer = QR(ParamRenderer, dialect=dialect)
-		rendered = queryRenderer.render(new_self)
+		return queryRenderer.render(new_self)
 
-		return RenderedQuery(
-			sql=rendered.sql,
-			parameters=rendered.parameters
-		)
+		# return RenderedQuery(
+		# 	sql=rendered.sql,
+		# 	parameters=rendered.parameters
+		# 	parameter_names = rendered.parameter_names
+		# )
 
 	@property
 	def pd(self) -> Dict[str, Any]:
@@ -286,12 +300,18 @@ class ParameterPlaceholder(QueryBit, InstanceTracking):
 	('select :1', (123,))
 
 	"""
-	key: str
+	key: Union[str, AutoKey]
 	':meta private:'
 	value: csql.ParameterValue
 	':meta private:'
 	_key_context: Optional[int] # allow people to pass multiple distinct parameters with the same key into a Query.
 
+@dataclass(frozen=True)
+class AutoKey:
+	"""
+	A wrapper for a parameter key, indicating it was generated automatically by :meth:`csql.Parameters.add`.
+	"""
+	k: str
 
 class Parameters:
 	"""
@@ -311,14 +331,14 @@ class Parameters:
 	See: :ref:`reparam`
 	"""
 
-	params: Dict[str, ParameterValue]
+	params: Dict[Union[str, AutoKey], ParameterValue]
 	':meta private:'
 
 	def __init__(self, **kwargs: ParameterValue):
 		self.params = {k: self._check_hashable_value(k, v) for k, v in kwargs.items()}
 
 	@staticmethod
-	def _check_hashable_value(key: str, val: Any) -> Hashable:
+	def _check_hashable_value(key: Union[str, AutoKey], val: Any) -> Hashable:
 		if isinstance(val, Collection) and not isinstance(val, str):
 			val = tuple(val)
 		try:
@@ -327,7 +347,7 @@ class Parameters:
 		except TypeError as e:
 			raise ValueError(f'Refusing to add {key}:{val} - parameter values need to be hashable.') from e
 
-	def _add(self, key: str, val: Any) -> ParameterPlaceholder:
+	def _add(self, key: Union[str, AutoKey], val: Any) -> ParameterPlaceholder:
 		if key in self.params:
 			raise ValueError(f'Refusing to add {key}: it is already in this set of Parameters (with value {self.params[key]}).')
 		val = self._check_hashable_value(key, val)
@@ -373,9 +393,9 @@ class Parameters:
 		if not (passed_arg ^ passed_kw):
 			raise ValueError('You need to call either add(val) or add(key=val)')
 		if passed_arg:
-			generate_keys = (f'_add_{i}' for i in itertools.count())
-			key = next(k for k in generate_keys if k not in self.params)
-			return self._add(key, value)
+			generate_keys = (AutoKey(f'_add_{i}') for i in itertools.count())
+			auto_key = next(k for k in generate_keys if k not in self.params)
+			return self._add(auto_key, value)
 		elif passed_kw:
 			[(key, val)] = kwargs.items()
 			return self._add(key, val)
@@ -384,7 +404,7 @@ class Parameters:
 	def __contains__(self, key: str) -> bool:
 		return self.params.__contains__(key)
 
-	def __getitem__(self, key: str) -> ParameterPlaceholder:
+	def __getitem__(self, key: Union[str, AutoKey]) -> ParameterPlaceholder:
 		paramVal = self.params[key] # check existence
 		return ParameterPlaceholder(key=key, value=paramVal, _key_context=id(self))
 

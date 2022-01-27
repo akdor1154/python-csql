@@ -2,7 +2,7 @@
 ``csql.contrib.render.param`` contains alterantive :class:`csql.render.param.ParameterRenderer` implementations.
 """
 
-from csql.render.param import ParameterRenderer, SQL
+from csql.render.param import ParameterRenderer, SQL, AutoKey
 from typing import *
 
 
@@ -32,8 +32,8 @@ class UDFParameterRenderer(ParameterRenderer):
 	>>> #
 
 	"""
-	def _renderScalarSql(self, index: int, key: Optional[str]) -> SQL:
+	def _renderScalarSql(self, index: int, key: Optional[Union[str, AutoKey]]) -> SQL:
 		"Override rendering to render parameters as just their key"
 		if key is None:
 			raise ValueError('All parameters must be named. This means collection parameters won\'t work.')
-		return SQL(key)
+		return SQL(key if isinstance(key, str) else key.k)

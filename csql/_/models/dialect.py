@@ -143,3 +143,9 @@ DefaultDialect = SQLDialect(
 	limit=Limit.limit
 )
 '''The default dialect for CSQL.'''
+
+import dataclasses
+@dataclasses.dataclass(frozen=True)
+class InferOrDefault:
+	''' A wrapper to flag that this query should use a previous query\'s dialect if not otherwise specified. '''
+	dialect: csql.dialect.SQLDialect

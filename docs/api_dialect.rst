@@ -17,14 +17,15 @@ SQL Dialects
 
 .. automodule:: csql.dialect
    :imported-members:
-   :exclude-members: SQLDialect,ParamStyle,Limit
+   :exclude-members: SQLDialect,ParamStyle,Limit,InferOrDefault
 
 
-.. autoclass:: SQLDialect
-   :exclude-members: paramstyle, limit
+   .. autoclass:: SQLDialect
+      :exclude-members: paramstyle, limit
 
-.. autoclass:: csql.dialect.ParamStyle()
-.. autoclass:: csql.dialect.Limit()
+   .. autoclass:: csql.dialect.ParamStyle()
+   .. autoclass:: csql.dialect.Limit()
+   .. autoclass:: csql.dialect.InferOrDefault()
 
 
 .. _overrides:
@@ -37,7 +38,7 @@ and provide alternative rendering implementations. You can do anything here, fro
 rendering parameters differently, all the way through to pre-processing and assembling
 Queries in an arbitrary way.
 
-To customize rendering with your own implementations, pass an :class:`csql.Overrides` to
+To customize rendering with your own implementations, pass an :class:`csql.overrides.Overrides` to
 :meth:`csql.Query.build` or :func:`csql.Q` ``overrides``. For example:
 
 .. code-block:: py
@@ -53,8 +54,21 @@ To customize rendering with your own implementations, pass an :class:`csql.Overr
    q = Q('select * from thingers where id = {p['val']})
    q.build(overrides=overrides)
 
-.. autoclass:: csql.Overrides
-   :no-members:
+Like dialects, overrides will by default propagate if they've been set on referenced queries:
+
+   >>> from csql.overrides import Overrides
+   >>> o = Overrides()
+   >>> q1 = Q(f'select * from thinger', overrides=o)
+   >>> q2 = Q(f'select count(*) from {q1}')
+   >>> assert q2.default_overrides == o
+
+.. automodule:: csql.overrides
+
+   .. autoclass:: csql.overrides.Overrides
+      :no-members:
+
+   .. autoclass:: csql.overrides.InferOrDefault
+      :no-members:
 
 Parameter Rendering
 -------------------
@@ -83,6 +97,8 @@ The builtin parameter renderers are found in :mod:`csql.render.param`.
    .. autoclass:: csql.render.param.SQL
 
       A ``NewType`` alias for a ``str`` representing a chunk of SQL.
+
+   .. autoclass:: csql.render.param.AutoKey
 
 Query Renderering
 -----------------

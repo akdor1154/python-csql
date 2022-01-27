@@ -12,7 +12,7 @@ BUILDDIR      = _build
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-.PHONY: help Makefile
+.PHONY: help watch Makefile
 
 watch: Makefile
 	sphinx-autobuild "$(SOUCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) -a --watch ../csql $(O)

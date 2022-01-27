@@ -33,7 +33,7 @@ jobs:
       - restore_cache:
           keys:
             - >
-              v2
+              v3
               python_artifacts
               << parameters.python_docker_tag >>
               {{ checksum "poetry.lock" }}
@@ -41,11 +41,11 @@ jobs:
 
       - run:
           name: Install test dependencies
-          command: poetry install -E pandas
+          command: poetry install -E pandas -E docs
 
       - save_cache:
           key: >
-              v2
+              v3
               python_artifacts
               << parameters.python_docker_tag >>
               {{ checksum "poetry.lock" }}
@@ -54,11 +54,11 @@ jobs:
 
       - run:
           name: mypy
-          command: poetry run mypy csql tests
+          command: make mypy
 
       - run:
           name: pytest
-          command: poetry run pytest
+          command: make test
 
   docs:
     parameters:
@@ -99,16 +99,14 @@ jobs:
 
       - run:
           name: Build docs
-          working_directory: docs
-          command:  poetry run make html SPHINXOPTS="-W --keep-going -n"
+          command: make docs
       
       - store_artifacts:
           path: docs/_build/html/
 
       - run:
           name: Run doc tests
-          working_directory: docs
-          command: poetry run make doctest
+          command: make doctest
 
   register:
     executor:

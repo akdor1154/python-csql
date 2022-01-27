@@ -6,6 +6,7 @@ from ._.models.dialect import (
 	Limit,
 
 	DefaultDialect,
+	InferOrDefault
 )
 
 DefaultDialect = DefaultDialect # give sphinx a nudge

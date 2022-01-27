@@ -101,7 +101,10 @@ f'''\
 			else renderedSelf
 		)
 
+		paramValues, paramNames = self.paramRenderer.renderList()
+
 		return RenderedQuery(
 			sql=fullSql,
-			parameters=self.paramRenderer.renderList()
+			parameters=paramValues,
+			parameter_names=paramNames
 		)

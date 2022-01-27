@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import *
-from ..models.query import Parameters, ParameterList, ParameterPlaceholder, ScalarParameterValue
+from ..models.query import Parameters, ParameterList, ParameterPlaceholder, ScalarParameterValue, AutoKey
 from ..models.dialect import SQLDialect, ParamStyle
 from ..utils import assert_never
 from collections.abc import Collection as CollectionABC
@@ -17,16 +17,19 @@ if TYPE_CHECKING:
 
 class ParamList:
 	_params: List[ScalarParameterValue]
+	_param_names: List[Optional[str]]
 
 	def __init__(self) -> None:
 		self._params = []
+		self._param_names = []
 
-	def add(self, param: ScalarParameterValue) -> int:
+	def add(self, param: ScalarParameterValue, name: Optional[Union[AutoKey, str]]) -> int:
 		self._params.append(param)
+		self._param_names.append(name if isinstance(name, str) else None)
 		return len(self._params)-1
 
-	def render(self) -> ParameterList:
-		return tuple(self._params) # todo -> tuple
+	def render(self) -> Tuple[ParameterList, Tuple[Optional[str], ...]]:
+		return tuple(self._params), tuple(self._param_names)
 
 class ParameterRenderer(ABC):
 	"""
@@ -56,7 +59,7 @@ class ParameterRenderer(ABC):
 		self.renderedParams = ParamList()
 
 	@abc.abstractmethod
-	def _renderScalarSql(self, index: int, key: Optional[str]) -> csql.render.param.SQL:
+	def _renderScalarSql(self, index: int, key: Optional[Union[AutoKey, str]]) -> csql.render.param.SQL:
 		"""
 		This is called once for each parameter that needs to be rendered
 		into a :class:`csql.RenderedQuery`. Implementations might be simple:
@@ -73,11 +76,11 @@ class ParameterRenderer(ABC):
 		"""
 		pass
 
-	def _renderScalar(self, paramKey: Optional[str], paramValue: ScalarParameterValue) -> Tuple[int, SQL]:
-		index = self.renderedParams.add(paramValue)
+	def _renderScalar(self, paramKey: Optional[Union[AutoKey, str]], paramValue: ScalarParameterValue) -> Tuple[int, SQL]:
+		index = self.renderedParams.add(paramValue, paramKey)
 		return (index, self._renderScalarSql(index, paramKey))
 
-	def _renderCollection(self, paramKey: str, paramValues: Collection[ScalarParameterValue]) -> Tuple[List[int], SQL]:
+	def _renderCollection(self, paramKey: Union[AutoKey, str], paramValues: Collection[ScalarParameterValue]) -> Tuple[List[int], SQL]:
 		_params = [
 			self._renderScalar(None, paramValue)
 			for paramValue in paramValues
@@ -87,7 +90,7 @@ class ParameterRenderer(ABC):
 
 		return (indices, SQL(f'( {",".join(sql)} )'))
 
-	def renderList(self) -> ParameterList:
+	def renderList(self) -> Tuple[ParameterList, Tuple[Optional[str], ...]]:
 		return self.renderedParams.render()
 
 	def render(self, param: ParameterPlaceholder) -> SQL:
@@ -106,7 +109,7 @@ class QMark(ParameterRenderer):
 	A ``ParameterRenderer`` that renders param placeholders as '?'.
 	"""
 
-	def _renderScalarSql(self, index: int, key: Optional[str]) -> SQL:
+	def _renderScalarSql(self, index: int, key: Optional[Union[str, AutoKey]]) -> SQL:
 		return SQL('?')
 
 class NumericParameterRenderer(ParameterRenderer, ABC):
@@ -123,11 +126,12 @@ class NumericParameterRenderer(ParameterRenderer, ABC):
 	def _renderIndex(self, index: int) -> SQL:
 		pass
 
-	def _renderScalarSql(self, index: int, key: Optional[str]) -> SQL:
+	def _renderScalarSql(self, index: int, key: Optional[Union[str, AutoKey]]) -> SQL:
 		return self._renderIndex(index + self.paramNumberFrom)
 
 	def render(self, param: ParameterPlaceholder) -> SQL:
-		key = (param._key_context or 0) ^ hash(param.key)
+		# should be able to hash(AutoKey) directly, but I was hitting a flakey test
+		key = (param._key_context or 0) ^ hash(param.key if isinstance(param.key, str) else param.key.k)
 
 		if key in self.renderedKeys:
 			preRendered = self.renderedKeys[key]

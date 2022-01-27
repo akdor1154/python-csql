@@ -111,6 +111,11 @@ def test_parameters_reparameterization_collection_new_length():
 	dialect = SQLDialect(paramstyle=ParamStyle.numeric)
 
 	built = q.build(dialect=dialect, newParams={'abckey': ['A','B']})
-
-	assert built.sql == 'select 1 where abc in ( :1,:2 ) or abc in ( :1,:2 )'
-	assert built.parameters == ('A', 'B')
+	try:
+		assert built.sql == 'select 1 where abc in ( :1,:2 ) or abc in ( :1,:2 )'
+		assert built.parameters == ('A', 'B')
+	finally:
+		# this guy was flakey and I haven't proved exactly why yet.
+		print(built.sql)
+		print(built.parameters)
+		print(built.parameter_names)
