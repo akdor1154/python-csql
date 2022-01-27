@@ -2,6 +2,9 @@
 
 ## v0.11.0
 
+### Breaking changes:
+  - RenderedQuery now has a third member, `parameter_names`. This will be a breaking change if you're splatting it.
+
 ### New stuff:
   - Dialects and Overrides will be inferred from previous queries where possible.
   - RenderedQuery now has a third member, `parameter_names`.
