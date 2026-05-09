@@ -47,7 +47,7 @@ def replace_queries_in_tree(fn: QueryReplacer, q: Query) -> Query:
 
 		result = fn(new_q)
 
-		if not isinstance(result, Query):
+		if not isinstance(result, Query):  # pyright: ignore[reportUnnecessaryIsInstance]
 			raise TypeError(
 				f"{fn} returned None! fn passed to QueryReplacer needs to always return a Query."
 			)
@@ -98,7 +98,7 @@ def pre_build_replacer() -> QueryReplacer:
 		result = preBuild.hook()
 		if result is None:
 			return q
-		elif isinstance(result, Query):
+		elif isinstance(result, Query):  # pyright: ignore[reportUnnecessaryIsInstance]
 			return result
 		else:
 			raise ValueError(

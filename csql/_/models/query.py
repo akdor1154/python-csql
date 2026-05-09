@@ -21,7 +21,7 @@ from ..utils import unique
 from .dialect import SQLDialect
 
 if TYPE_CHECKING:
-	import pandas as pd
+	import pandas as pd  # pyright: ignore[reportMissingTypeStubs]
 
 	# import public interface so we can avoid internal ._....  appearing in
 	# function signatures, doco, etc.
@@ -177,13 +177,13 @@ class Query(QueryBit, InstanceTracking):
 		:param rows: The number of rows to pull.
 		:rtype: :class:`pandas.DataFrame`
 		"""
-		import pandas as pd
+		import pandas as pd  # pyright: ignore[reportMissingTypeStubs]
 
 		from ..utils import limit_query
 
 		dialect = dialect or self._default_dialect()  # TODO - is this needed?
 		previewQ = limit_query(self, rows, dialect)
-		return pd.read_sql(
+		return pd.read_sql(  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
 			**previewQ.build(
 				dialect=dialect, newParams=newParams, overrides=overrides
 			).pd,
@@ -225,7 +225,7 @@ class Query(QueryBit, InstanceTracking):
 			if overrides.paramRenderer is not None
 			else ParameterRenderer.get(dialect)
 		)
-		if not issubclass(ParamRenderer, ParameterRenderer):
+		if not issubclass(ParamRenderer, ParameterRenderer):  # pyright: ignore[reportUnnecessaryIsInstance]
 			raise TypeError(
 				f"{ParamRenderer} needs to be a subclass of csql.ParameterRenderer"
 			)
@@ -235,7 +235,7 @@ class Query(QueryBit, InstanceTracking):
 			if overrides.queryRenderer is not None
 			else BoringSQLRenderer
 		)
-		if not issubclass(QR, QueryRenderer):
+		if not issubclass(QR, QueryRenderer):  # pyright: ignore[reportUnnecessaryIsInstance]
 			raise TypeError(
 				f"{QueryRenderer} needs to be a subclass of csql.SQLRenderer"
 			)
@@ -367,7 +367,7 @@ class Parameters:
 	@staticmethod
 	def _check_hashable_value(key: str | AutoKey, val: Any) -> Hashable:
 		if isinstance(val, Collection) and not isinstance(val, str):
-			val = tuple(val)
+			val = tuple(val)  # pyright: ignore[reportUnknownVariableType, reportUnknownArgumentType]
 		try:
 			_h = hash(val)
 			return cast(Hashable, val)

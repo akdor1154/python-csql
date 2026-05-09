@@ -99,8 +99,8 @@ class ParameterRenderer(ABC):
 		paramValues: Collection[ScalarParameterValue],
 	) -> tuple[list[int], SQL]:
 		_params = [self._renderScalar(None, paramValue) for paramValue in paramValues]
-		indices = [i for i, sql in _params]
-		sql = [sql for i, sql in _params]
+		indices = [i for i, _sql in _params]
+		sql = [sql for _i, sql in _params]
 
 		return (indices, SQL(f"( {','.join(sql)} )"))
 
@@ -111,7 +111,7 @@ class ParameterRenderer(ABC):
 		paramKey = param.key
 		paramValue = param.value
 		if isinstance(paramValue, CollectionABC) and not isinstance(paramValue, str):
-			_indices, sql = self._renderCollection(paramKey, paramValue)
+			_indices, sql = self._renderCollection(paramKey, paramValue)  # pyright: ignore[reportUnknownArgumentType]
 		else:
 			index, sql = self._renderScalar(paramKey, paramValue)
 			_indices = [index]

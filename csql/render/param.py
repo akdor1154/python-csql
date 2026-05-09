@@ -1,4 +1,5 @@
 # mypy: implicit-reexport
+# pyright: reportUnusedImport=false
 # ruff: noqa: F401
 from .._.models.query import AutoKey
 from .._.renderer.parameters import (

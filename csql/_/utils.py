@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Callable, Generator, Iterable, Iterator
 from typing import (
 	TYPE_CHECKING,
-	Any,
 	Generic,
 	NoReturn,
 	TypeVar,
@@ -28,8 +27,8 @@ class Collector(Generic[T, R]):
 		self.returned = yield from self.generator
 
 
-def unique(gen: Iterable[T], fn: Callable[[T], Any] = hash) -> Iterable[T]:
-	seen = set()
+def unique(gen: Iterable[T], fn: Callable[[T], R] = hash) -> Iterable[T]:
+	seen: set[R] = set()
 	for val in gen:
 		if fn(val) in seen:
 			continue

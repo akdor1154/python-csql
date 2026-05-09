@@ -1,6 +1,6 @@
 from textwrap import dedent
 
-from csql import Q, Query
+from csql import Q, Query, QueryBit
 from csql._.models.query import ParameterPlaceholder, Parameters
 from csql._.models.query_replacers import replace_queries_in_tree
 
@@ -65,7 +65,7 @@ def test_replace_modify_params():
 	from csql._.models.query_replacers import _replace_query_parts
 
 	def replacer(q: Query) -> Query:
-		def replace_params(p):
+		def replace_params(p: str | QueryBit) -> str | QueryBit:
 			if isinstance(p, ParameterPlaceholder):
 				return "'ZAP'"
 			else:

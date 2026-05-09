@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/pyright/main/packages/vscode-pyright/schemas/pyrightconfig.schema.json",
+  "include": ["csql", "tests"],
+  "pythonVersion": "3.10",
+  "typeCheckingMode": "strict",
+  "reportPrivateUsage": false,
+  "executionEnvironments": [
+    {
+      "root": "tests",
+    },
+  ],
+}

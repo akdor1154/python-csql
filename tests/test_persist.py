@@ -86,7 +86,7 @@ def test_persist_chained():
 	with sqlite3.connect(":memory:") as con:
 		from csql import RenderedQuery
 
-		hooked_saves = {}
+		hooked_saves: dict[str | None, RenderedQuery] = {}
 
 		class HookedTempTableCacher(TempTableCacher):
 			def _persist(self, rq: RenderedQuery, key: Key, tag: str | None) -> Query:

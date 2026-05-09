@@ -79,8 +79,8 @@ class BoringSQLRenderer(QueryRenderer):
 	def _render(self, query: csql.Query) -> csql.RenderedQuery:
 		"""Renders a query and all its dependencies into a CTE expression."""
 
-		cteParts = []
-		depNames = {}
+		cteParts: list[tuple[str, Query]] = []
+		depNames: DepNames = {}
 		for i, dep in enumerate(query._getDeps()):
 			subName = f"_subQuery{i}"
 			depNames[id(dep)] = subName
