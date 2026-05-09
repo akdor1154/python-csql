@@ -1,17 +1,17 @@
 lint: mypy
 
 mypy:
-	poetry run mypy csql tests
+	uv run mypy csql tests
 
 test: pytest doctest
 
 pytest:
-	poetry run pytest
+	uv run pytest
 
 doctest:
-	cd docs; poetry run $(MAKE) doctest
+	cd docs; uv run $(MAKE) doctest
 
 docs:
-	cd docs; poetry run $(MAKE) html SPHINXOPTS="-W --keep-going -n"
+	cd docs; uv run $(MAKE) html SPHINXOPTS="-W --keep-going -n"
 
 .PHONY: test docs lint mypy pytest doctest
