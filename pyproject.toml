@@ -3,7 +3,7 @@ name = "csql"
 version = "0.11.0"
 description = "Simple library for writing composeable SQL queries"
 authors = [{ name = "Jarrad Whitaker", email = "akdor1154@gmail.com" }]
-requires-python = ">=3.8,<4"
+requires-python = ">=3.9,<4"
 readme = "README.md"
 license = "LGPL-3.0-or-later"
 keywords = [

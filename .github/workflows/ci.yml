@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
     env:
       UV_PYTHON: "${{ matrix.python-version }}"
     steps:
@@ -32,14 +32,14 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     env:
-      UV_PYTHON: "3.8"
+      UV_PYTHON: "3.13"
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
           # needs double-specifying to affect cache
-          python-version: "3.8"
+          python-version: "3.13"
       # - uses: actions/setup-python@v5
       #   with:
       #     python-version: "3.8"
@@ -59,14 +59,14 @@ jobs:
     permissions:
       id-token: write
     env:
-      UV_PYTHON: "3.10"
+      UV_PYTHON: "3.13"
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
           # needs double-specifying to affect cache
-          python-version: "3.10"
+          python-version: "3.13"
       # - uses: actions/setup-python@v5
       #   with:
       #     python-version: "3.10"
