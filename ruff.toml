@@ -1,0 +1,6 @@
+preview = true
+target-version = "py310"
+[format]
+indent-style = "tab"
+[lint]
+extend-select = ["UP"]
