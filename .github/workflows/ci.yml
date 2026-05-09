@@ -23,6 +23,7 @@ jobs:
           # needs double-specifying to affect cache
           python-version: "${{ matrix.python-version }}"
       - run: uv sync
+      - run: make ruff
       - run: make mypy
       - run: make pytest
 
