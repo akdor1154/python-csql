@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from textwrap import dedent
-from typing import *
+from typing import TYPE_CHECKING, Optional, Union
 
 from .input import strparsing
 from .models import dialect as _dialect

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import *
+from typing import TYPE_CHECKING, Optional, Type
 
 if TYPE_CHECKING:
 	import csql

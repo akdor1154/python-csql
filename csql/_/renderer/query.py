@@ -2,7 +2,16 @@ from __future__ import annotations
 
 import abc
 from textwrap import dedent, indent
-from typing import *
+from typing import (
+	TYPE_CHECKING,
+	Any,
+	Dict,
+	Generator,
+	List,
+	NamedTuple,
+	NewType,
+	Type,
+)
 
 from ..models.dialect import SQLDialect
 from ..models.query import ParameterPlaceholder, Query, RenderedQuery

@@ -1,5 +1,5 @@
 import re
-from typing import *
+from typing import TYPE_CHECKING, Dict, Iterable, Tuple, Union, cast
 from weakref import WeakValueDictionary
 
 if TYPE_CHECKING:

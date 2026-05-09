@@ -1,7 +1,6 @@
 # %%
 
 from functools import partial
-from typing import *
 from typing import NamedTuple
 
 import duckdb

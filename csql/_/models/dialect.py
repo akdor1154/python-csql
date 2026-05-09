@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 from dataclasses import dataclass
 from enum import auto
-from typing import *
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
 	import csql.dialect

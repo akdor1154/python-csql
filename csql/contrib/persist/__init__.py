@@ -3,7 +3,7 @@
 """
 
 from logging import getLogger
-from typing import *
+from typing import Any, Optional
 
 from csql import Q, Query, RenderedQuery
 from csql._.persist import Cacher as Cacher

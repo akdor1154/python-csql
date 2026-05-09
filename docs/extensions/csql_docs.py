@@ -1,4 +1,4 @@
-from typing import *
+from typing import Any, List
 
 from sphinx.application import Sphinx
 

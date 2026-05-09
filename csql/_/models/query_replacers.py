@@ -1,5 +1,5 @@
 import dataclasses
-from typing import *
+from typing import Any, Dict, Optional, Protocol, Union
 
 from .query import ParameterPlaceholder, Parameters, PreBuild, Query, QueryBit
 

@@ -2,7 +2,7 @@
 ``csql.contrib.render.param`` contains alterantive :class:`csql.render.param.ParameterRenderer` implementations.
 """
 
-from typing import *
+from typing import Optional, Union
 
 from csql.render.param import SQL, AutoKey, ParameterRenderer
 

@@ -3,7 +3,18 @@ from __future__ import annotations
 import abc
 from abc import ABC
 from collections.abc import Collection as CollectionABC
-from typing import *
+from typing import (
+	TYPE_CHECKING,
+	Collection,
+	Dict,
+	List,
+	NewType,
+	Optional,
+	Tuple,
+	Type,
+	Union,
+	assert_never,
+)
 
 from ..models.dialect import ParamStyle, SQLDialect
 from ..models.query import (

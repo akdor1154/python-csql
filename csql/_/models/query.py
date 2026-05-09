@@ -6,7 +6,23 @@ import dataclasses
 import itertools
 from abc import ABCMeta
 from dataclasses import dataclass
-from typing import *
+from typing import (
+	TYPE_CHECKING,
+	Any,
+	Collection,
+	Dict,
+	FrozenSet,
+	Hashable,
+	Iterable,
+	NamedTuple,
+	Optional,
+	Protocol,
+	Tuple,
+	Type,
+	TypeVar,
+	Union,
+	cast,
+)
 
 from ..input.strparsing import InstanceTracking
 from ..utils import unique

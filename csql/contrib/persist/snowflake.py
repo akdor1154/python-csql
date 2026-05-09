@@ -6,7 +6,7 @@ to make sure `snowflake-connector-python` is installed.
 
 from __future__ import annotations
 
-from typing import *
+from typing import TYPE_CHECKING, Optional
 
 from csql import Q, Query, RenderedQuery
 

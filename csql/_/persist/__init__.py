@@ -9,8 +9,7 @@ import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import *
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable, Dict, Optional
 
 from csql import Q as Q
 

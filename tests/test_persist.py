@@ -1,6 +1,6 @@
 import re
 import sqlite3
-from typing import *
+from typing import Optional
 from unittest.mock import Mock
 
 from csql import Parameters, Q, Query

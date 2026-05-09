@@ -1,7 +1,17 @@
 from __future__ import annotations
 
-from typing import *
-from typing import NoReturn  # py 3.6
+from typing import (
+	TYPE_CHECKING,
+	Any,
+	Callable,
+	Generator,
+	Generic,
+	Iterable,
+	Iterator,
+	NoReturn,
+	TypeVar,
+	assert_never,
+)
 
 if TYPE_CHECKING:
 	from .models.dialect import SQLDialect
