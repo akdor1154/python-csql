@@ -1,13 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Generator, Iterable, Iterator
 from typing import (
 	TYPE_CHECKING,
 	Any,
-	Callable,
-	Generator,
 	Generic,
-	Iterable,
-	Iterator,
 	NoReturn,
 	TypeVar,
 	assert_never,

@@ -2,17 +2,11 @@ from __future__ import annotations
 
 import abc
 from abc import ABC
+from collections.abc import Collection
 from collections.abc import Collection as CollectionABC
 from typing import (
 	TYPE_CHECKING,
-	Collection,
-	Dict,
-	List,
 	NewType,
-	Optional,
-	Tuple,
-	Type,
-	Union,
 	assert_never,
 )
 
@@ -32,21 +26,21 @@ if TYPE_CHECKING:
 
 
 class ParamList:
-	_params: List[ScalarParameterValue]
-	_param_names: List[Optional[str]]
+	_params: list[ScalarParameterValue]
+	_param_names: list[str | None]
 
 	def __init__(self) -> None:
 		self._params = []
 		self._param_names = []
 
 	def add(
-		self, param: ScalarParameterValue, name: Optional[Union[AutoKey, str]]
+		self, param: ScalarParameterValue, name: AutoKey | str | None
 	) -> int:
 		self._params.append(param)
 		self._param_names.append(name if isinstance(name, str) else None)
 		return len(self._params) - 1
 
-	def render(self) -> Tuple[ParameterList, Tuple[Optional[str], ...]]:
+	def render(self) -> tuple[ParameterList, tuple[str | None, ...]]:
 		return tuple(self._params), tuple(self._param_names)
 
 
@@ -64,7 +58,7 @@ class ParameterRenderer(ABC):
 	":meta private:"
 
 	@staticmethod
-	def get(dialect: SQLDialect) -> Type[ParameterRenderer]:
+	def get(dialect: SQLDialect) -> type[ParameterRenderer]:
 		if dialect.paramstyle is ParamStyle.numeric:
 			return ColonNumeric
 		elif dialect.paramstyle is ParamStyle.numeric_dollar:
@@ -79,7 +73,7 @@ class ParameterRenderer(ABC):
 
 	@abc.abstractmethod
 	def _renderScalarSql(
-		self, index: int, key: Optional[Union[AutoKey, str]]
+		self, index: int, key: AutoKey | str | None
 	) -> csql.render.param.SQL:
 		"""
 		This is called once for each parameter that needs to be rendered
@@ -97,23 +91,23 @@ class ParameterRenderer(ABC):
 		"""
 
 	def _renderScalar(
-		self, paramKey: Optional[Union[AutoKey, str]], paramValue: ScalarParameterValue
-	) -> Tuple[int, SQL]:
+		self, paramKey: AutoKey | str | None, paramValue: ScalarParameterValue
+	) -> tuple[int, SQL]:
 		index = self.renderedParams.add(paramValue, paramKey)
 		return (index, self._renderScalarSql(index, paramKey))
 
 	def _renderCollection(
 		self,
-		paramKey: Union[AutoKey, str],
+		paramKey: AutoKey | str,
 		paramValues: Collection[ScalarParameterValue],
-	) -> Tuple[List[int], SQL]:
+	) -> tuple[list[int], SQL]:
 		_params = [self._renderScalar(None, paramValue) for paramValue in paramValues]
 		indices = [i for i, sql in _params]
 		sql = [sql for i, sql in _params]
 
 		return (indices, SQL(f"( {','.join(sql)} )"))
 
-	def renderList(self) -> Tuple[ParameterList, Tuple[Optional[str], ...]]:
+	def renderList(self) -> tuple[ParameterList, tuple[str | None, ...]]:
 		return self.renderedParams.render()
 
 	def render(self, param: ParameterPlaceholder) -> SQL:
@@ -132,12 +126,12 @@ class QMark(ParameterRenderer):
 	A ``ParameterRenderer`` that renders param placeholders as '?'.
 	"""
 
-	def _renderScalarSql(self, index: int, key: Optional[Union[str, AutoKey]]) -> SQL:
+	def _renderScalarSql(self, index: int, key: str | AutoKey | None) -> SQL:
 		return SQL("?")
 
 
 class NumericParameterRenderer(ParameterRenderer, ABC):
-	renderedKeys: Dict[int, SQL]
+	renderedKeys: dict[int, SQL]
 	paramNumberFrom: int
 
 	def __init__(self) -> None:
@@ -149,7 +143,7 @@ class NumericParameterRenderer(ParameterRenderer, ABC):
 	def _renderIndex(self, index: int) -> SQL:
 		pass
 
-	def _renderScalarSql(self, index: int, key: Optional[Union[str, AutoKey]]) -> SQL:
+	def _renderScalarSql(self, index: int, key: str | AutoKey | None) -> SQL:
 		return self._renderIndex(index + self.paramNumberFrom)
 
 	def render(self, param: ParameterPlaceholder) -> SQL:

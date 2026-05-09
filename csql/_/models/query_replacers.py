@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Any, Dict, Optional, Protocol, Union
+from typing import Any, Protocol
 
 from .query import ParameterPlaceholder, Parameters, PreBuild, Query, QueryBit
 
@@ -11,7 +11,7 @@ class PartReplacer(Protocol):
 	means you can go changing parameters, adding sql comments, etc.
 	"""
 
-	def __call__(self, p: Union[str, QueryBit]) -> Union[str, QueryBit]:
+	def __call__(self, p: str | QueryBit) -> str | QueryBit:
 		pass
 
 
@@ -35,7 +35,7 @@ def replace_queries_in_tree(fn: QueryReplacer, q: Query) -> Query:
 	"""Replace every q in a tree with fn(q), beginning with the leaves."""
 	import functools
 
-	def replace_queries(p: Union[str, QueryBit]) -> Union[str, QueryBit]:
+	def replace_queries(p: str | QueryBit) -> str | QueryBit:
 		if isinstance(p, Query):
 			return rewrite_query(p)
 		else:
@@ -67,14 +67,14 @@ def _replace_query_parts(fn: PartReplacer, q: Query) -> Query:
 		return dataclasses.replace(q, queryParts=new_parts)
 
 
-def params_replacer(newParams: Optional[Dict[str, Any]]) -> QueryReplacer:
+def params_replacer(newParams: dict[str, Any] | None) -> QueryReplacer:
 	"""This builds a QueryReplacer that handles re-parameterization."""
 	if newParams is None:
 		return lambda q: q
 
 	_newParams = Parameters(**newParams)  # checks if hashable.
 
-	def part_replacer(p: Union[str, QueryBit]) -> Union[str, QueryBit]:
+	def part_replacer(p: str | QueryBit) -> str | QueryBit:
 		if (
 			isinstance(p, ParameterPlaceholder)
 			and isinstance(p.key, str)

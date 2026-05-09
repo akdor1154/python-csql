@@ -5,22 +5,14 @@ import dataclasses
 # from .persisted_query import PersistedQuery
 import itertools
 from abc import ABCMeta
+from collections.abc import Collection, Hashable, Iterable
 from dataclasses import dataclass
 from typing import (
 	TYPE_CHECKING,
 	Any,
-	Collection,
-	Dict,
-	FrozenSet,
-	Hashable,
-	Iterable,
 	NamedTuple,
-	Optional,
 	Protocol,
-	Tuple,
-	Type,
 	TypeVar,
-	Union,
 	cast,
 )
 
@@ -53,7 +45,7 @@ else:
 
 ScalarParameterValue = Hashable
 
-ParameterList = Tuple[ScalarParameterValue, ...]
+ParameterList = tuple[ScalarParameterValue, ...]
 
 
 class RenderedQuery(NamedTuple):
@@ -68,12 +60,12 @@ class RenderedQuery(NamedTuple):
 	""" The rendered SQL, ready to be passed to a database. """
 	parameters: ParameterList
 	""" A tuple of parameters, to go along with the SQL. """
-	parameter_names: Tuple[Optional[str], ...]
+	parameter_names: tuple[str | None, ...]
 	""" A tuple of parameter names that the parameters were passed as. """
 
 	# utility properties for easy splatting
 	@property
-	def pd(self) -> Dict[str, Any]:
+	def pd(self) -> dict[str, Any]:
 		"""
 		Gives dict of ``{'sql':sql, 'params':params}``, for usage like:
 
@@ -85,7 +77,7 @@ class RenderedQuery(NamedTuple):
 		return dict(sql=self.sql, params=self.parameters)
 
 	@property
-	def db(self) -> Tuple[str, ParameterList]:
+	def db(self) -> tuple[str, ParameterList]:
 		"""
 		Returns a tuple of (sql, params), for usage like:
 
@@ -113,7 +105,7 @@ QE = TypeVar(
 
 
 class PreBuildHook(Protocol):
-	def __call__(self) -> Optional[Query]: ...
+	def __call__(self) -> Query | None: ...
 
 
 @dataclass(frozen=True)
@@ -131,13 +123,13 @@ class Query(QueryBit, InstanceTracking):
 	instead you should use :func:`csql.Q`.
 	"""
 
-	queryParts: Tuple[Union[str, QueryBit], ...]
+	queryParts: tuple[str | QueryBit, ...]
 	":meta private:"
-	default_dialect: Union[csql.dialect.SQLDialect, csql.dialect.InferOrDefault]
+	default_dialect: csql.dialect.SQLDialect | csql.dialect.InferOrDefault
 	":meta private:"
-	default_overrides: Optional[Union[Overrides, csql.overrides.InferOrDefault]]
+	default_overrides: Overrides | csql.overrides.InferOrDefault | None
 	":meta private:"
-	_extensions: FrozenSet[QueryExtension]
+	_extensions: frozenset[QueryExtension]
 	":meta private:"
 
 	## deps
@@ -152,7 +144,7 @@ class Query(QueryBit, InstanceTracking):
 		return unique(self._getDeps_(), fn=id)
 
 	## extensions
-	def _get_extension(self, t: Type[QE]) -> Optional[QE]:
+	def _get_extension(self, t: type[QE]) -> QE | None:
 		exts = {type(e): e for e in self._extensions}  # could memoize this
 		return cast(QE, exts.get(t))  # mypy sucks
 
@@ -165,7 +157,7 @@ class Query(QueryBit, InstanceTracking):
 		d = self.default_dialect
 		return d.dialect if isinstance(d, InferOrDefault) else d
 
-	def _default_overrides(self) -> Optional[Overrides]:
+	def _default_overrides(self) -> Overrides | None:
 		from .overrides import InferOrDefault
 
 		o = self.default_overrides
@@ -175,9 +167,9 @@ class Query(QueryBit, InstanceTracking):
 		self,
 		con: Any,
 		rows: int = 10,
-		dialect: Optional[csql.dialect.SQLDialect] = None,
-		newParams: Optional[Dict[str, ParameterValue]] = None,
-		overrides: Optional[csql.overrides.Overrides] = None,
+		dialect: csql.dialect.SQLDialect | None = None,
+		newParams: dict[str, ParameterValue] | None = None,
+		overrides: csql.overrides.Overrides | None = None,
 	) -> pd.DataFrame:
 		"""
 		Return a small dataframe to preview the results of this query.
@@ -211,9 +203,9 @@ class Query(QueryBit, InstanceTracking):
 	def build(
 		self,
 		*,
-		dialect: Optional[csql.dialect.SQLDialect] = None,
-		newParams: Optional[Dict[str, ParameterValue]] = None,
-		overrides: Optional[csql.overrides.Overrides] = None,
+		dialect: csql.dialect.SQLDialect | None = None,
+		newParams: dict[str, ParameterValue] | None = None,
+		overrides: csql.overrides.Overrides | None = None,
 	) -> csql.RenderedQuery:
 		"""
 		Build this :class:`csql.Query` into a :class:`csql.RenderedQuery`.
@@ -248,7 +240,7 @@ class Query(QueryBit, InstanceTracking):
 				f"{ParamRenderer} needs to be a subclass of csql.ParameterRenderer"
 			)
 
-		QR: Type[QueryRenderer] = (
+		QR: type[QueryRenderer] = (
 			overrides.queryRenderer  # type: ignore # mypy bug
 			if overrides.queryRenderer is not None
 			else BoringSQLRenderer
@@ -274,7 +266,7 @@ class Query(QueryBit, InstanceTracking):
 		# )
 
 	@property
-	def pd(self) -> Dict[str, Any]:
+	def pd(self) -> dict[str, Any]:
 		"""
 		Convenience wrapper for Query.build().pd.
 
@@ -289,7 +281,7 @@ class Query(QueryBit, InstanceTracking):
 		return self.build().pd
 
 	@property
-	def db(self) -> Tuple[str, ParameterList]:
+	def db(self) -> tuple[str, ParameterList]:
 		"""
 		Convenience wrapper for :meth:`Query.build().db<RenderedQuery.db>`.
 
@@ -303,7 +295,7 @@ class Query(QueryBit, InstanceTracking):
 		return self.build().db
 
 	def persist(
-		self, cacher: csql.persist.Cacher, tag: Optional[str] = None
+		self, cacher: csql.persist.Cacher, tag: str | None = None
 	) -> csql.Query:
 		"""
 		Marks this query for persistance with the given :class:`csql.persist.Cacher`.
@@ -323,7 +315,7 @@ class Query(QueryBit, InstanceTracking):
 		return cacher.persist(self, tag)
 
 
-ParameterValue = Union[Hashable, Collection[Hashable]]
+ParameterValue = Hashable | Collection[Hashable]
 
 
 @dataclass(frozen=True)
@@ -340,13 +332,13 @@ class ParameterPlaceholder(QueryBit, InstanceTracking):
 
 	"""
 
-	key: Union[str, AutoKey]
+	key: str | AutoKey
 	":meta private:"
 	value: csql.ParameterValue
 	":meta private:"
-	_key_context: Optional[
-		int
-	]  # allow people to pass multiple distinct parameters with the same key into a Query.
+	_key_context: (
+		int | None
+	)  # allow people to pass multiple distinct parameters with the same key into a Query.
 
 
 @dataclass(frozen=True)
@@ -376,14 +368,14 @@ class Parameters:
 	See: :ref:`reparam`
 	"""
 
-	params: Dict[Union[str, AutoKey], ParameterValue]
+	params: dict[str | AutoKey, ParameterValue]
 	":meta private:"
 
 	def __init__(self, **kwargs: ParameterValue):
 		self.params = {k: self._check_hashable_value(k, v) for k, v in kwargs.items()}
 
 	@staticmethod
-	def _check_hashable_value(key: Union[str, AutoKey], val: Any) -> Hashable:
+	def _check_hashable_value(key: str | AutoKey, val: Any) -> Hashable:
 		if isinstance(val, Collection) and not isinstance(val, str):
 			val = tuple(val)
 		try:
@@ -394,7 +386,7 @@ class Parameters:
 				f"Refusing to add {key}:{val} - parameter values need to be hashable."
 			) from e
 
-	def _add(self, key: Union[str, AutoKey], val: Any) -> ParameterPlaceholder:
+	def _add(self, key: str | AutoKey, val: Any) -> ParameterPlaceholder:
 		if key in self.params:
 			raise ValueError(
 				f"Refusing to add {key}: it is already in this set of Parameters (with value {self.params[key]})."
@@ -455,7 +447,7 @@ class Parameters:
 	def __contains__(self, key: str) -> bool:
 		return self.params.__contains__(key)
 
-	def __getitem__(self, key: Union[str, AutoKey]) -> ParameterPlaceholder:
+	def __getitem__(self, key: str | AutoKey) -> ParameterPlaceholder:
 		paramVal = self.params[key]  # check existence
 		return ParameterPlaceholder(key=key, value=paramVal, _key_context=id(self))
 

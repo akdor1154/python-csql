@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from textwrap import dedent
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING
 
 from .input import strparsing
 from .models import dialect as _dialect
@@ -17,12 +17,8 @@ if TYPE_CHECKING:
 
 def Q(
 	sql: str,
-	dialect: Union[
-		csql.dialect.SQLDialect, csql.dialect.InferOrDefault
-	] = _dialect.InferOrDefault(DefaultDialect),
-	overrides: Union[
-		Optional[csql.overrides.Overrides], csql.overrides.InferOrDefault
-	] = _overrides.InferOrDefault(None),
+	dialect: csql.dialect.SQLDialect | csql.dialect.InferOrDefault = _dialect.InferOrDefault(DefaultDialect),
+	overrides: csql.overrides.Overrides | None | csql.overrides.InferOrDefault = _overrides.InferOrDefault(None),
 ) -> csql.Query:
 	"""
 	Create a :class:`csql.Query`.

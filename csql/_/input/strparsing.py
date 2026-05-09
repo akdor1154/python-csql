@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import re
-from typing import TYPE_CHECKING, Dict, Iterable, Tuple, Union, cast
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, cast
 from weakref import WeakValueDictionary
 
 if TYPE_CHECKING:
@@ -7,7 +10,7 @@ if TYPE_CHECKING:
 
 
 class InstanceTracking:
-	instances: "WeakValueDictionary[int, InstanceTracking]" = WeakValueDictionary()
+	instances: WeakValueDictionary[int, InstanceTracking] = WeakValueDictionary()
 
 	# we need to keep some strong refs around for the case where
 	# someone does an fstring with an immediate value:
@@ -16,7 +19,7 @@ class InstanceTracking:
 	# -> Q( "asdf" + "<querybit:1234>") < - at this point there are no references to Q('fdsa') so it is GC'd
 	# -> Q( "asdf<querybut:1234" )
 	# -> ["asdf", instances[1234]] <- bang, 1234 does not exist, it's been GC'd
-	formattedInstances: Dict[int, "InstanceTracking"] = dict()
+	formattedInstances: dict[int, InstanceTracking] = dict()
 
 	def __post_init__(self) -> None:
 		InstanceTracking.instances[hash(self)] = self
@@ -50,7 +53,7 @@ class InstanceTracking:
 regex = re.compile(r"〈QueryBit:(-?\d+)〉")
 
 
-def _parseInterpolatedString(s: str) -> Iterable[Union[str, "QueryBit"]]:
+def _parseInterpolatedString(s: str) -> Iterable[str | QueryBit]:
 	matches = regex.finditer(s)
 	i = 0  # end of last processed match
 	for match in matches:
@@ -68,5 +71,5 @@ def _parseInterpolatedString(s: str) -> Iterable[Union[str, "QueryBit"]]:
 	yield s[i:]
 
 
-def getQueryParts(s: str) -> Tuple[Union[str, "QueryBit"], ...]:
+def getQueryParts(s: str) -> tuple[str | QueryBit, ...]:
 	return tuple(bit for bit in _parseInterpolatedString(s) if bit != "")

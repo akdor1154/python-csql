@@ -2,8 +2,6 @@
 ``csql.contrib.render.param`` contains alterantive :class:`csql.render.param.ParameterRenderer` implementations.
 """
 
-from typing import Optional, Union
-
 from csql.render.param import SQL, AutoKey, ParameterRenderer
 
 
@@ -34,7 +32,7 @@ class UDFParameterRenderer(ParameterRenderer):
 
 	"""
 
-	def _renderScalarSql(self, index: int, key: Optional[Union[str, AutoKey]]) -> SQL:
+	def _renderScalarSql(self, index: int, key: str | AutoKey | None) -> SQL:
 		"Override rendering to render parameters as just their key"
 		if key is None:
 			raise ValueError(

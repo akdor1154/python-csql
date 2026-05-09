@@ -6,7 +6,7 @@ to make sure `snowflake-connector-python` is installed.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from csql import Q, Query, RenderedQuery
 
@@ -31,7 +31,7 @@ class SnowflakeResultSetCacher(Cacher):
 	def __init__(self, connection: snowflake.connector.Connection):
 		self._con = connection
 
-	def _persist(self, rq: RenderedQuery, key: Key, tag: Optional[str]) -> Query:
+	def _persist(self, rq: RenderedQuery, key: Key, tag: str | None) -> Query:
 
 		sql, params, _param_names = rq
 

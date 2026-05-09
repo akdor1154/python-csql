@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any
 
 from sphinx.application import Sphinx
 
@@ -10,7 +10,7 @@ def setup(app: Sphinx):
 
 
 def process_docstring(
-	app: Sphinx, what: str, name: str, obj: Any, options: Any, lines: List[str]
+	app: Sphinx, what: str, name: str, obj: Any, options: Any, lines: list[str]
 ):
 	# print(f'{what=}: {name=}')
 	# for l in lines: print(l)

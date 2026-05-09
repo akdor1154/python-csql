@@ -32,7 +32,7 @@ class TempTableCacher(Cacher):
 	def __init__(self, connection: Any):
 		self._con = connection
 
-	def _persist(self, rq: RenderedQuery, key: Key, tag: Optional[str]) -> Query:
+	def _persist(self, rq: RenderedQuery, key: Key, tag: str | None) -> Query:
 		table_name = f'"csql_cache_{tag}_{key}"'
 
 		sql, params, _names = rq

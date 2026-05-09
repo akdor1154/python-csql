@@ -1,6 +1,5 @@
 import re
 import sqlite3
-from typing import Optional
 from unittest.mock import Mock
 
 from csql import Parameters, Q, Query
@@ -91,7 +90,7 @@ def test_persist_chained():
 
 		class HookedTempTableCacher(TempTableCacher):
 			def _persist(
-				self, rq: RenderedQuery, key: Key, tag: Optional[str]
+				self, rq: RenderedQuery, key: Key, tag: str | None
 			) -> Query:
 				hooked_saves[tag] = rq
 				return super()._persist(rq, key, tag)

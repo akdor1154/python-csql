@@ -8,8 +8,9 @@ import threading
 import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Callable, Dict, Optional
+from typing import TYPE_CHECKING, Dict, Optional
 
 from csql import Q as Q
 
@@ -32,7 +33,7 @@ class Persistable(QueryExtension):
 
 	cacher: Cacher
 
-	tag: Optional[str]
+	tag: str | None
 	"User-supplied tag, to potentially be used by Cacher to give readable names to things it caches."
 
 
@@ -54,21 +55,21 @@ Key = str  # I keep changing my mind between str, int, bytes...
 
 
 class KeyLookup:
-	saved: Dict[Key, Query] = {}
-	locks: Dict[Key, threading.Lock] = defaultdict(threading.Lock)
+	saved: dict[Key, Query] = {}
+	locks: dict[Key, threading.Lock] = defaultdict(threading.Lock)
 	_lock = threading.Lock()
 
 	def _get_lock(self, key: Key) -> threading.Lock:
 		with self._lock:
 			return self.locks[key]
 
-	def _get_key(self, rq: RenderedQuery, tag: Optional[str]) -> Key:
+	def _get_key(self, rq: RenderedQuery, tag: str | None) -> Key:
 		key_long = pickle.dumps((rq.sql, tag, *rq.parameters))
 		key_hash = hashlib.sha1(key_long).hexdigest()
 		return key_hash
 
 	def _make_save_fn(
-		self, q: Query, qr: QueryRenderer, c: Cacher, tag: Optional[str]
+		self, q: Query, qr: QueryRenderer, c: Cacher, tag: str | None
 	) -> Callable[[], Query]:
 		rq = qr.render(q)
 		# TODO  should be rq = q.build(overrides, dialect)
@@ -129,7 +130,7 @@ class Cacher(ABC):
 
 	"""
 
-	def persist(self, q: Query, tag: Optional[str]) -> Query:
+	def persist(self, q: Query, tag: str | None) -> Query:
 		"""
 		Marks a query as persistabe.
 		:meta private:
@@ -138,7 +139,7 @@ class Cacher(ABC):
 
 	@abstractmethod
 	def _persist(
-		self, rq: csql.RenderedQuery, key: csql.persist.Key, tag: Optional[str]
+		self, rq: csql.RenderedQuery, key: csql.persist.Key, tag: str | None
 	) -> csql.Query:
 		"""
 		This should take a RenderedQuery, save it (keyed by the given ``key``), and

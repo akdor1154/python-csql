@@ -1,16 +1,13 @@
 from __future__ import annotations
 
 import abc
+from collections.abc import Generator
 from textwrap import dedent, indent
 from typing import (
 	TYPE_CHECKING,
 	Any,
-	Dict,
-	Generator,
-	List,
 	NamedTuple,
 	NewType,
-	Type,
 )
 
 from ..models.dialect import SQLDialect
@@ -23,18 +20,18 @@ if TYPE_CHECKING:
 
 SQLBit = NewType("SQLBit", str)
 
-DepNames = Dict[int, str]  # dict of id(query) to query name
+DepNames = dict[int, str]  # dict of id(query) to query name
 
 
 class QueryRenderer(abc.ABC):
-	ParamRenderer: Type[csql.render.param.ParameterRenderer]
+	ParamRenderer: type[csql.render.param.ParameterRenderer]
 
 	# mutable, replaced every render()
 	paramRenderer: ParameterRenderer
 
 	def __init__(
 		self,
-		ParamRenderer: Type[csql.render.param.ParameterRenderer],
+		ParamRenderer: type[csql.render.param.ParameterRenderer],
 		dialect: SQLDialect,
 	):
 		# param renderer is stateful and should only be used once.
@@ -72,7 +69,7 @@ class BoringSQLRenderer(QueryRenderer):
 
 	class RenderedSingleQuery(NamedTuple):
 		sql: str
-		paramValues: List[Any]
+		paramValues: list[Any]
 
 	def _renderSingleQuery(self, query: Query, depNames: DepNames) -> SQLBit:
 		queryBits = self.__renderSingleQuery(query, depNames)
@@ -92,7 +89,7 @@ class BoringSQLRenderer(QueryRenderer):
 			cteParts.append((subName, dep))
 
 		tab = "\t"
-		depSqls: List[SQLBit] = []
+		depSqls: list[SQLBit] = []
 		for depName, dep in cteParts:
 			renderedDep = self._renderSingleQuery(dep, depNames)
 			dedented = dedent(renderedDep).strip()
