@@ -22,11 +22,8 @@ jobs:
           enable-cache: true
           # needs double-specifying to affect cache
           python-version: "${{ matrix.python-version }}"
-      # - uses: actions/setup-python@v5
-      #   with:
-      #     python-version: ${{ matrix.python-version }}
       - run: uv sync
-      # - run: make mypy
+      - run: make mypy
       - run: make pytest
 
   docs:
@@ -40,9 +37,6 @@ jobs:
           enable-cache: true
           # needs double-specifying to affect cache
           python-version: "3.13"
-      # - uses: actions/setup-python@v5
-      #   with:
-      #     python-version: "3.8"
       - run: uv sync
       - run: make docs
       - uses: actions/upload-artifact@v4
@@ -67,8 +61,5 @@ jobs:
           enable-cache: true
           # needs double-specifying to affect cache
           python-version: "3.13"
-      # - uses: actions/setup-python@v5
-      #   with:
-      #     python-version: "3.10"
       - run: uv build
       - uses: pypa/gh-action-pypi-publish@release/v1
