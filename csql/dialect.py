@@ -1,10 +1,11 @@
 # mypy: implicit-reexport
+# ruff: noqa: F401
 from ._.models.dialect import (
-	SQLDialect,
-	ParamStyle,
-	Limit,
 	DefaultDialect,
 	InferOrDefault,
+	Limit,
+	ParamStyle,
+	SQLDialect,
 )
 
 DefaultDialect = DefaultDialect  # give sphinx a nudge

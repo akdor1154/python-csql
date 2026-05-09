@@ -1,31 +1,28 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import *
-from dataclasses import dataclass
-from abc import ABCMeta, abstractmethod
-from ..utils import unique
-from textwrap import dedent
-from ..input.strparsing import InstanceTracking
-from weakref import WeakValueDictionary
-from .dialect import SQLDialect
-from collections.abc import Collection as CollectionABC
-import functools
-# from .persisted_query import PersistedQuery
 
+# from .persisted_query import PersistedQuery
 import itertools
+from abc import ABCMeta
+from dataclasses import dataclass
+from typing import *
+
+from ..input.strparsing import InstanceTracking
+from ..utils import unique
+from .dialect import SQLDialect
 
 if TYPE_CHECKING:
 	import pandas as pd
-	from .overrides import Overrides
-	from ..persist import Cacher
 
 	# import public interface so we can avoid internal ._....  appearing in
 	# function signatures, doco, etc.
 	import csql
 	import csql.dialect
-	import csql.persist
 	import csql.overrides
+	import csql.persist
+
+	from .overrides import Overrides
 
 import sys
 
@@ -83,7 +80,7 @@ class RenderedQuery(NamedTuple):
 		return (self.sql, self.parameters)
 
 	def __repr__(self) -> str:
-		return f"RenderedQuery({repr(self.sql)}, {repr(self.parameters)})"
+		return f"RenderedQuery({self.sql!r}, {self.parameters!r})"
 
 
 class QueryBit(metaclass=ABCMeta):
@@ -100,7 +97,7 @@ QE = TypeVar(
 
 
 class PreBuildHook(Protocol):
-	def __call__(self) -> Optional["Query"]: ...
+	def __call__(self) -> Optional[Query]: ...
 
 
 @dataclass(frozen=True)
@@ -129,13 +126,13 @@ class Query(QueryBit, InstanceTracking):
 
 	## deps
 
-	def _getDeps_(self) -> Iterable["Query"]:
+	def _getDeps_(self) -> Iterable[Query]:
 		queryDeps = (part for part in self.queryParts if isinstance(part, Query))
 		for dep in queryDeps:
 			yield from dep._getDeps_()
 			yield dep
 
-	def _getDeps(self) -> Iterable["Query"]:
+	def _getDeps(self) -> Iterable[Query]:
 		return unique(self._getDeps_(), fn=id)
 
 	## extensions
@@ -143,7 +140,7 @@ class Query(QueryBit, InstanceTracking):
 		exts = {type(e): e for e in self._extensions}  # could memoize this
 		return cast(QE, exts.get(t))  # mypy sucks
 
-	def _add_extensions(self, *e: QueryExtension) -> "Query":
+	def _add_extensions(self, *e: QueryExtension) -> Query:
 		return dataclasses.replace(self, _extensions=self._extensions | set(e))
 
 	def _default_dialect(self) -> SQLDialect:
@@ -183,7 +180,7 @@ class Query(QueryBit, InstanceTracking):
 		:rtype: :class:`pandas.DataFrame`
 		"""
 		import pandas as pd
-		from csql import Q
+
 		from ..utils import limit_query
 
 		dialect = dialect or self._default_dialect()  # TODO - is this needed?
@@ -213,14 +210,14 @@ class Query(QueryBit, InstanceTracking):
 		:param overrides: An optional :class:`csql.overrides.Overrides` to override how rendering workd. See: :ref:`overrides`.
 		"""
 		dialect = dialect or self._default_dialect()
-		from ..renderer.query import BoringSQLRenderer, QueryRenderer
-		from ..renderer.parameters import ParameterRenderer
-		from .overrides import Overrides
 		from ..persist import cache_replacer
+		from ..renderer.parameters import ParameterRenderer
+		from ..renderer.query import BoringSQLRenderer, QueryRenderer
+		from .overrides import Overrides
 		from .query_replacers import (
-			replace_queries_in_tree,
 			params_replacer,
 			pre_build_replacer,
+			replace_queries_in_tree,
 		)
 
 		overrides = overrides or self._default_overrides() or Overrides()

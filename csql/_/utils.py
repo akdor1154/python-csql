@@ -1,9 +1,10 @@
 from __future__ import annotations
+
 from typing import *
 from typing import NoReturn  # py 3.6
 
 if TYPE_CHECKING:
-	from .models.dialect import SQLDialect, Limit
+	from .models.dialect import SQLDialect
 	from .models.query import Query
 
 # https://stackoverflow.com/a/34073559/5264127

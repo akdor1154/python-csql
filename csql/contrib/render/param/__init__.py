@@ -2,8 +2,9 @@
 ``csql.contrib.render.param`` contains alterantive :class:`csql.render.param.ParameterRenderer` implementations.
 """
 
-from csql.render.param import ParameterRenderer, SQL, AutoKey
 from typing import *
+
+from csql.render.param import SQL, AutoKey, ParameterRenderer
 
 
 class UDFParameterRenderer(ParameterRenderer):

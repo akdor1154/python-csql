@@ -1,13 +1,15 @@
 # %%
 
-from typing import NamedTuple
-import pandas as pd
-import duckdb
+from functools import partial
 from typing import *
+from typing import NamedTuple
+
+import duckdb
+import pandas as pd
+
 import csql
 import csql.dialect
 from csql import Parameters
-from functools import partial
 
 # %%
 d = duckdb.connect()
@@ -45,7 +47,7 @@ display(tab_df)
 # %%
 d.register("tab", tab_df)
 # %%
-qTab = Q(f"""
+qTab = Q("""
     select
         "Year" as year,
         "Local Government Area" as lga,

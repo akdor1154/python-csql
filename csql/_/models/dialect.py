@@ -1,14 +1,14 @@
 from __future__ import annotations
-import abc
+
 import enum
+from dataclasses import dataclass
 from enum import auto
 from typing import *
-from dataclasses import dataclass
 
 if TYPE_CHECKING:
 	import csql.dialect
 
-__all__ = ["ParamStyle", "SQLDialect", "DefaultDialect", "Snowflake", "DuckDB"]
+__all__ = ["DefaultDialect", "DuckDB", "ParamStyle", "SQLDialect", "Snowflake"]
 
 
 class ParamStyle(enum.Enum):

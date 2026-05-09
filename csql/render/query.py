@@ -1,2 +1,3 @@
 # mypy: implicit-reexport
-from .._.renderer.query import QueryRenderer, BoringSQLRenderer
+# ruff: noqa: F401
+from .._.renderer.query import BoringSQLRenderer, QueryRenderer

@@ -1,6 +1,7 @@
-from typing import *
-from .query import QueryBit, Query, PreBuild, ParameterPlaceholder, Parameters
 import dataclasses
+from typing import *
+
+from .query import ParameterPlaceholder, Parameters, PreBuild, Query, QueryBit
 
 
 class PartReplacer(Protocol):
@@ -40,7 +41,7 @@ def replace_queries_in_tree(fn: QueryReplacer, q: Query) -> Query:
 		else:
 			return p
 
-	@functools.lru_cache(maxsize=None)
+	@functools.cache
 	def rewrite_query(q: Query) -> Query:
 
 		new_q = _replace_query_parts(replace_queries, q)
@@ -102,7 +103,7 @@ def pre_build_replacer() -> QueryReplacer:
 			return result
 		else:
 			raise Exception(
-				f"prebuild needs to return None or a Query, it returned {repr(result)}!"
+				f"prebuild needs to return None or a Query, it returned {result!r}!"
 			)
 
 	return query_replacer

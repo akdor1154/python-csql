@@ -1,7 +1,6 @@
 import re
-from weakref import WeakValueDictionary
 from typing import *
-import re
+from weakref import WeakValueDictionary
 
 if TYPE_CHECKING:
 	from ..models.query import QueryBit

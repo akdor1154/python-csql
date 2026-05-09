@@ -5,9 +5,12 @@ to make sure `snowflake-connector-python` is installed.
 """
 
 from __future__ import annotations
+
 from typing import *
+
+from csql import Q, Query, RenderedQuery
+
 from . import Cacher, Key
-from csql import RenderedQuery, Query, Q
 
 if TYPE_CHECKING:
 	import snowflake.connector

@@ -1,12 +1,12 @@
 from __future__ import annotations
-from typing import *
-from textwrap import dedent, indent
-import abc
 
-from ..utils import Collector
-from ..models.query import Query, ParameterPlaceholder, RenderedQuery, ParameterList
-from ..models.dialect import SQLDialect, ParamStyle
-from .parameters import ParameterRenderer, ColonNumeric, DollarNumeric
+import abc
+from textwrap import dedent, indent
+from typing import *
+
+from ..models.dialect import SQLDialect
+from ..models.query import ParameterPlaceholder, Query, RenderedQuery
+from .parameters import ParameterRenderer
 
 if TYPE_CHECKING:
 	import csql

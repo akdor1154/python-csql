@@ -1,5 +1,6 @@
-from sphinx.application import Sphinx
 from typing import *
+
+from sphinx.application import Sphinx
 
 
 def setup(app: Sphinx):
@@ -36,5 +37,3 @@ def process_signature(
 		annotations = app.env.temp_data.get("annotations", {})
 		annotation = annotations.get(name, {})
 		annotation.clear()
-
-	return

@@ -1,8 +1,7 @@
 from __future__ import annotations
-from typing import *
-from ..renderer.parameters import ParameterRenderer
-from ..renderer.query import QueryRenderer
+
 from dataclasses import dataclass
+from typing import *
 
 if TYPE_CHECKING:
 	import csql

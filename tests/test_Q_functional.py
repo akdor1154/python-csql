@@ -1,8 +1,9 @@
-from csql import Q, RenderedQuery, Parameters
-from csql.dialect import SQLDialect, DefaultDialect, ParamStyle
 from textwrap import dedent
-from pprint import pprint
+
 import pytest
+
+from csql import Parameters, Q, RenderedQuery
+from csql.dialect import DefaultDialect, ParamStyle
 
 
 def test_cte_params():
@@ -67,7 +68,7 @@ def test_reused_params():
 
 
 def test_indenting():
-	q1 = Q(f"""
+	q1 = Q("""
 		select
 			1
 		from dummy
@@ -195,7 +196,6 @@ def test_dialect_propagation_error_on_ambiguity():
 
 
 def test_overrides_propagation():
-	import dataclasses
 	import csql.overrides
 	import csql.render.query
 
@@ -206,7 +206,7 @@ def test_overrides_propagation():
 
 	o = csql.overrides.Overrides(queryRenderer=MySQLRenderer)
 
-	q1 = Q(f"select 1", overrides=o)
+	q1 = Q("select 1", overrides=o)
 
 	q2 = Q(
 		f"select count(*) from {q1}",

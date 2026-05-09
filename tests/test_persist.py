@@ -1,12 +1,10 @@
-from csql import Q, Query, Parameters
-from textwrap import dedent
-
-from csql.contrib.persist import TempTableCacher, Cacher, Key
-
-from unittest.mock import Mock, MagicMock
 import re
 import sqlite3
 from typing import *
+from unittest.mock import Mock
+
+from csql import Parameters, Q, Query
+from csql.contrib.persist import Key, TempTableCacher
 
 
 def test_persist_simple():
@@ -14,7 +12,7 @@ def test_persist_simple():
 	with sqlite3.connect(":memory:") as con:
 		c = TempTableCacher(con)
 
-		q1 = Q(f"""
+		q1 = Q("""
 			with t(a,b,c) as (
 				values (1, 2, 3), (1, 2, 3)
 			)
@@ -72,7 +70,7 @@ def test_persist_tag():
 	with sqlite3.connect(":memory:") as con:
 		c = TempTableCacher(con)
 
-		q1 = Q(f"""
+		q1 = Q("""
 			with t(a,b,c) as (
 				values (1, 2, 3), (1, 2, 3)
 			)
@@ -100,7 +98,7 @@ def test_persist_chained():
 
 		c = HookedTempTableCacher(con)
 
-		q1 = Q(f"select 'q1' as val").persist(c, "q1")
+		q1 = Q("select 'q1' as val").persist(c, "q1")
 		q2 = Q(f"select val || 'q2' as val from {q1}").persist(c, "q2")
 		q3 = Q(f"select val || 'q3' as val from {q2}").persist(c, "q3")
 

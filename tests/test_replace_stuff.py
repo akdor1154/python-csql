@@ -1,12 +1,13 @@
-from csql import Q, Query
-from csql._.models.query import ParameterPlaceholder, Parameters, QueryBit
-from csql._.models.query_replacers import replace_queries_in_tree
 from textwrap import dedent
+
+from csql import Q, Query
+from csql._.models.query import ParameterPlaceholder, Parameters
+from csql._.models.query_replacers import replace_queries_in_tree
 
 
 def test_replace_identity():
 
-	q1 = Q(f"select 1 from root")
+	q1 = Q("select 1 from root")
 	q2 = Q(f"select count(*) from {q1}")
 
 	q2_built = q2.build()
@@ -22,7 +23,7 @@ def test_replace_identity():
 
 def test_replace_simple():
 
-	q1 = Q(f"select 1 from root")
+	q1 = Q("select 1 from root")
 	q2 = Q(f"select count(*) from {q1} as q1")
 	q3 = Q(f"select * from {q2} q2 join {q1} q1")
 
@@ -69,7 +70,7 @@ def test_replace_modify_params():
 	def replacer(q: Query) -> Query:
 		def replace_params(p):
 			if isinstance(p, ParameterPlaceholder):
-				return f"'ZAP'"
+				return "'ZAP'"
 			else:
 				return p
 

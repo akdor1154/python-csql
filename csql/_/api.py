@@ -1,13 +1,13 @@
 from __future__ import annotations
-from typing import *
-from .input import strparsing
-from .models.query import Query, Parameters, RenderedQuery
-from .models import dialect as _dialect
-from .models.dialect import SQLDialect, DefaultDialect
-from .models import overrides as _overrides
-from .models.overrides import Overrides
-import warnings
+
 from textwrap import dedent
+from typing import *
+
+from .input import strparsing
+from .models import dialect as _dialect
+from .models import overrides as _overrides
+from .models.dialect import DefaultDialect, SQLDialect
+from .models.query import Query
 
 if TYPE_CHECKING:
 	import csql
@@ -23,7 +23,7 @@ def Q(
 	overrides: Union[
 		Optional[csql.overrides.Overrides], csql.overrides.InferOrDefault
 	] = _overrides.InferOrDefault(None),
-) -> "csql.Query":
+) -> csql.Query:
 	"""
 	Create a :class:`csql.Query`.
 

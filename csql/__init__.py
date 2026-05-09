@@ -1,29 +1,31 @@
 from __future__ import annotations
 
+# ruff: noqa: F401
 # anything exported through here is considered public api.
 # mypy: implicit-reexport
 from ._.api import (
 	Q,
 )
 from ._.models.query import (
-	Query,
-	Parameters,
-	ParameterValue,
-	ParameterPlaceholder,
-	RenderedQuery,
 	ParameterList as _Deprecated_ParameterList,
 )
-
+from ._.models.query import (
+	ParameterPlaceholder,
+	Parameters,
+	ParameterValue,
+	Query,
+	RenderedQuery,
+)
 from .overrides import Overrides as _Deprecated_Overrides
 
 __all__ = [
+	"Overrides",
+	"ParameterList",
+	"ParameterValueParameterPlaceholder",
+	"Parameters",
 	"Q",
 	"Query",
-	"Parameters",
-	"ParameterValueParameterPlaceholder",
 	"RenderedQuery",
-	"ParameterList",
-	"Overrides",
 ]
 
 import typing
@@ -34,7 +36,7 @@ def __getattr__(name: str) -> typing.Any:
 		from warnings import warn
 
 		warn(
-			f"ParameterList is deprecated. It's now just a type alias, and it will be removed from public exports in a future release.",
+			"ParameterList is deprecated. It's now just a type alias, and it will be removed from public exports in a future release.",
 			DeprecationWarning,
 			stacklevel=2,
 		)
@@ -43,7 +45,7 @@ def __getattr__(name: str) -> typing.Any:
 		from warnings import warn
 
 		warn(
-			f"csql.Overrides has moved to csql.overrides.Overrides. Please import from there, it will be enforced in a later release.",
+			"csql.Overrides has moved to csql.overrides.Overrides. Please import from there, it will be enforced in a later release.",
 			DeprecationWarning,
 			stacklevel=2,
 		)

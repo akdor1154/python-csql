@@ -1,6 +1,5 @@
-from csql import Q, RenderedQuery, Parameters
-from csql.dialect import SQLDialect, ParamStyle
-import pytest
+from csql import Parameters, Q
+from csql.dialect import ParamStyle, SQLDialect
 
 
 def test_parameters_reparameterization_qmark():

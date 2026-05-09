@@ -2,10 +2,12 @@
 ``contrib.persist`` contains some :class:`csql.persist.Cacher` implementations.
 """
 
-from csql._.persist import Cacher as Cacher, Key as Key
-from typing import *
-from csql import RenderedQuery, Query, Q
 from logging import getLogger
+from typing import *
+
+from csql import Q, Query, RenderedQuery
+from csql._.persist import Cacher as Cacher
+from csql._.persist import Key as Key
 
 logger = getLogger(__name__)
 

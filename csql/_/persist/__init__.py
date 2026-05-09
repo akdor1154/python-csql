@@ -1,19 +1,24 @@
 from __future__ import annotations
-from collections import defaultdict
+
 import functools
-from typing import TYPE_CHECKING
-from ..models.query import PreBuild, Query, QueryBit, QueryExtension, RenderedQuery
-from ..models.query_replacers import QueryReplacer
-from dataclasses import dataclass
-from ..renderer.query import QueryRenderer
-from csql import Q
-from abc import ABC, abstractmethod
-from typing import *
-import threading
-import uuid
+import hashlib
 import logging
 import pickle
-import hashlib
+import threading
+import uuid
+from abc import ABC, abstractmethod
+from collections import defaultdict
+from dataclasses import dataclass
+from typing import *
+from typing import TYPE_CHECKING
+
+from csql import Q as Q
+
+from ..models.query import PreBuild as PreBuild
+from ..models.query import Query, QueryExtension, RenderedQuery
+from ..models.query import QueryBit as QueryBit
+from ..models.query_replacers import QueryReplacer
+from ..renderer.query import QueryRenderer
 
 if TYPE_CHECKING:
 	import csql
@@ -26,7 +31,7 @@ logger = logging.getLogger(name=__name__)
 class Persistable(QueryExtension):
 	"""Attached directly to a slow query."""
 
-	cacher: "Cacher"
+	cacher: Cacher
 
 	tag: Optional[str]
 	"User-supplied tag, to potentially be used by Cacher to give readable names to things it caches."
@@ -64,7 +69,7 @@ class KeyLookup:
 		return key_hash
 
 	def _make_save_fn(
-		self, q: Query, qr: QueryRenderer, c: "Cacher", tag: Optional[str]
+		self, q: Query, qr: QueryRenderer, c: Cacher, tag: Optional[str]
 	) -> Callable[[], Query]:
 		rq = qr.render(q)
 		# TODO  should be rq = q.build(overrides, dialect)
@@ -169,4 +174,3 @@ class Cacher(ABC):
 		if you were comfortable with leaving permanent tables around in your database.
 
 		"""
-		pass

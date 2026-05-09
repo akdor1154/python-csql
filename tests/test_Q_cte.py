@@ -1,9 +1,10 @@
-from csql import Q
 from textwrap import dedent
+
+from csql import Q
 
 
 def test_basic_cte():
-	q1 = Q(f"select 1")
+	q1 = Q("select 1")
 	q2 = Q(f"select 2 join {q1}")
 
 	r = q2.build()
@@ -21,7 +22,7 @@ def test_basic_cte():
 
 
 def test_multiple_cte():
-	q1 = Q(f"select 1")
+	q1 = Q("select 1")
 	q2 = Q(f"select 2 join {q1}")
 	q3 = Q(f"select 3 join {q2}")
 
@@ -43,7 +44,7 @@ def test_multiple_cte():
 
 
 def test_nonlinear_cte():
-	q1 = Q(f"select 1")
+	q1 = Q("select 1")
 	q2 = Q(f"select 2 join {q1}")
 	q3 = Q(f"select 3 join {q1}")
 	q4 = Q(f"select 4 join {q2} join {q3}")
@@ -69,9 +70,9 @@ def test_nonlinear_cte():
 
 
 def test_multi_root_cte():
-	q1 = Q(f"select 1")
+	q1 = Q("select 1")
 	q2 = Q(f"select 2 join {q1}")
-	q3 = Q(f"select 3")
+	q3 = Q("select 3")
 	q4 = Q(f"select 4 join {q2} join {q3}")
 
 	r = q4.build()

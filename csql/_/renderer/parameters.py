@@ -1,20 +1,18 @@
 from __future__ import annotations
+
+import abc
+from abc import ABC
+from collections.abc import Collection as CollectionABC
 from typing import *
+
+from ..models.dialect import ParamStyle, SQLDialect
 from ..models.query import (
-	Parameters,
+	AutoKey,
 	ParameterList,
 	ParameterPlaceholder,
 	ScalarParameterValue,
-	AutoKey,
 )
-from ..models.dialect import SQLDialect, ParamStyle
 from ..utils import assert_never
-from collections.abc import Collection as CollectionABC
-import functools
-from itertools import chain
-import abc
-import collections
-from abc import ABC
 
 SQL = NewType("SQL", str)
 
@@ -55,7 +53,7 @@ class ParameterRenderer(ABC):
 	":meta private:"
 
 	@staticmethod
-	def get(dialect: SQLDialect) -> Type["ParameterRenderer"]:
+	def get(dialect: SQLDialect) -> Type[ParameterRenderer]:
 		if dialect.paramstyle is ParamStyle.numeric:
 			return ColonNumeric
 		elif dialect.paramstyle is ParamStyle.numeric_dollar:
@@ -86,7 +84,6 @@ class ParameterRenderer(ABC):
 		:param index: - the index of the current parameter in the rendered query. Numbered from 0.
 		:param key: - the (possibly missing) name of the current parameter.
 		"""
-		pass
 
 	def _renderScalar(
 		self, paramKey: Optional[Union[AutoKey, str]], paramValue: ScalarParameterValue
