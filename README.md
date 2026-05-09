@@ -166,17 +166,14 @@ with con.cursor() as c:
 sent as proper parameterized statements.
 
 ```py
-p = Parameters(
-	ids_i_want = [1, 2, 3],
-	name = 'Jarrad'
-)
+p = Parameters(ids_i_want=[1, 2, 3], name="Jarrad")
 
-get_customers = Q(f'''
+get_customers = Q(f"""
 	select * from customers
 	where
-		ids in {p['ids_i_want']}
-		or name = {p['name']}
-''')
+		ids in {p["ids_i_want"]}
+		or name = {p["name"]}
+""")
 
 with con.cursor() as c:
 	c.execute(*get_customers.db)
@@ -186,12 +183,15 @@ That final statement is actually equivalent to:
 
 ```py
 with con.cursor() as c:
-	c.execute('''
+	c.execute(
+		"""
 		select * from customers
 		where
 			ids in (:1, :2, :3)
 			or name = :4
-	''', [1, 2, 3, 'Jarrad'])
+	""",
+		[1, 2, 3, "Jarrad"],
+	)
 ```
 
 
@@ -209,14 +209,11 @@ to give values at the query definition time! How can you pass different values l
 This is achieved by passing `newParams` to {meth}`csql.Query.build`:
 
 ```py
-p = Parameters(
-  start=datetime.now() - timedelta(days=3),
-  end=datetime.now()
-)
-q = Q(f'select count(*) from events where start <= date and date < end')
+p = Parameters(start=datetime.now() - timedelta(days=3), end=datetime.now())
+q = Q(f"select count(*) from events where start <= date and date < end")
 pd.read_sql(**q.pd, con=con)
 # 42 # 3 days ago to now, as per `p`.
-newParams = {'start': date(2010,1,1)}
+newParams = {"start": date(2010, 1, 1)}
 pd.read_sql(**q.build(newParams=newParams).pd, con=con)
 # 42000 # 2010 to now, with new value for `start` provided.
 ```
@@ -231,16 +228,14 @@ Different dialects can be specified at render time, or as the default dialect of
 Dialects are instances of {class}`csql.dialect.SQLDialect` and can be found in {mod}`csql.dialect`. The default dialect is {class}`csql.dialect.DefaultDialect`, which uses a numeric parameter renderer. You can specify your own prefered dialect per-query:
 
 ```py
-q = csql.Q(
-	f"select 1 from thinger",
-	dialect=csql.dialect.DuckDB
-)
+q = csql.Q(f"select 1 from thinger", dialect=csql.dialect.DuckDB)
 ```
 
 If you want to set a default, use `functools.partial` like so:
 
 ```py
 import functools
+
 Q = functools.partial(csql.Q, dialect=csql.dialect.DuckDB)
 q = Q(f"select 1 from thinger")
 ```
@@ -264,9 +259,8 @@ You can construct your own dialects:
 
 ```py
 import csql.dialect
-MyDialect = csql.dialect.SQLDialect(
-  paramstyle=csql.dialect.ParamStyle.qmark
-)
+
+MyDialect = csql.dialect.SQLDialect(paramstyle=csql.dialect.ParamStyle.qmark)
 ```
 
 There are presets for some common databases (see below), and I'm very happy to accept PRs for any
@@ -288,13 +282,15 @@ take, and wonder if there's a way to stop them being executed each time.
 For example,
 
 ```py
-q1 = Q(f'select id, date, rank() over (partition by name order by date) as rank from customers')
-q2 = Q(f'select date, count(*) from {q1}')
+q1 = Q(
+	f"select id, date, rank() over (partition by name order by date) as rank from customers"
+)
+q2 = Q(f"select date, count(*) from {q1}")
 print(q2.preview_pd(con))
 # takes 2 mins becuase q1 is so slow
 print(q2.preview_pd(con))
 # same thing again, also takes 2 mins
-q3 = Q(f'select max(date) from {q2}')
+q3 = Q(f"select max(date) from {q2}")
 print(q3.preview_pd(con))
 # also takes 2 mins because q1 is so slow
 ```
@@ -304,14 +300,16 @@ Above, we could either do this on `q1` or `q2`, depending on what works best wit
 our database. I'll demonstrate `q2`:
 
 ```py
-q1 = Q(f'select id, date, rank() over (partition by name order by date) as rank from customers')
+q1 = Q(
+	f"select id, date, rank() over (partition by name order by date) as rank from customers"
+)
 cache = TempTableCacher(con)
-q2 = Q(f'select date, count(*) from {q1}').persist(cache) # <--- !!
+q2 = Q(f"select date, count(*) from {q1}").persist(cache)  # <--- !!
 print(q2.preview_pd(con))
 # still takes 2 mins
 print(q2.preview_pd(con))
 # now this is fast!
-q3 = Q(f'select max(date) from {q2}')
+q3 = Q(f"select max(date) from {q2}")
 print(q3.preview_pd(con))
 # now this is fast as well!
 ```

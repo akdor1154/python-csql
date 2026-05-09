@@ -1,5 +1,2 @@
 # mypy: implicit-reexport
-from ._.persist import (
-	Cacher,
-	Key
-)
+from ._.persist import Cacher, Key

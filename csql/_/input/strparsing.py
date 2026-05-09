@@ -7,8 +7,7 @@ if TYPE_CHECKING:
 	from ..models.query import QueryBit
 
 
-class InstanceTracking():
-
+class InstanceTracking:
 	instances: "WeakValueDictionary[int, InstanceTracking]" = WeakValueDictionary()
 
 	# we need to keep some strong refs around for the case where
@@ -25,7 +24,7 @@ class InstanceTracking():
 
 	def __format__(self, spec: str) -> str:
 		self._hold()
-		return f'〈QueryBit:{hash(self)}〉'
+		return f"〈QueryBit:{hash(self)}〉"
 
 	def _hold(self) -> None:
 		InstanceTracking.formattedInstances[hash(self)] = self
@@ -33,6 +32,7 @@ class InstanceTracking():
 	def _unhold(self) -> None:
 		if hash(self) in InstanceTracking.formattedInstances:
 			del InstanceTracking.formattedInstances[hash(self)]
+
 
 # problem:
 # intermediate values are GCd before they can be recalled
@@ -48,10 +48,12 @@ class InstanceTracking():
 # -
 
 
-regex = re.compile(r'〈QueryBit:(-?\d+)〉')
+regex = re.compile(r"〈QueryBit:(-?\d+)〉")
+
+
 def _parseInterpolatedString(s: str) -> Iterable[Union[str, "QueryBit"]]:
 	matches = regex.finditer(s)
-	i = 0 # end of last processed match
+	i = 0  # end of last processed match
 	for match in matches:
 		matchStart = match.start()
 		matchEnd = match.end()
@@ -66,9 +68,6 @@ def _parseInterpolatedString(s: str) -> Iterable[Union[str, "QueryBit"]]:
 
 	yield s[i:]
 
+
 def getQueryParts(s: str) -> Tuple[Union[str, "QueryBit"], ...]:
-	return tuple(
-		bit
-		for bit in _parseInterpolatedString(s)
-		if bit != ""
-	)
+	return tuple(bit for bit in _parseInterpolatedString(s) if bit != "")
