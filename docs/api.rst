@@ -42,7 +42,7 @@ Changing Parameter Values
 
 .. automodule:: csql
    :members:
-   :exclude-members: Q, Parameters, Query, RenderedQuery, ParameterValue
+   :exclude-members: Q, Parameters, Query, RenderedQuery, ParameterValue, ParameterPlaceholder
    :undoc-members:
 
    Q()

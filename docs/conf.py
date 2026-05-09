@@ -128,7 +128,10 @@ doctest.OutputChecker = CustomOutputChecker
 # set_type_checking_flag = True
 
 # -- intersphinx
-intersphinx_mapping = {"pandas": ("https://pandas.pydata.org/docs/", None)}
+intersphinx_mapping = {
+	"python": ("https://docs.python.org/3", None),
+	"pandas": ("https://pandas.pydata.org/docs/", None),
+}
 
 autosummary_generate = False
 autosummary_imported_members = True
