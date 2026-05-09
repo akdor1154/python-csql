@@ -1,48 +1,59 @@
-[tool.poetry]
+[project]
 name = "csql"
-description = "Simple library for writing composeable SQL queries"
 version = "0.11.0"
-authors = ["Jarrad Whitaker <akdor1154@gmail.com>"]
-license = "LGPL-3.0-or-later"
+description = "Simple library for writing composeable SQL queries"
+authors = [{ name = "Jarrad Whitaker", email = "akdor1154@gmail.com" }]
+requires-python = ">=3.8,<4"
 readme = "README.md"
-homepage = "https://github.com/akdor1154/python-csql"
-repository = "https://github.com/akdor1154/python-csql"
-keywords = ["sql", "analytics"]
+license = "LGPL-3.0-or-later"
+keywords = [
+    "sql",
+    "analytics",
+]
 classifiers = [
-	"Development Status :: 3 - Alpha",
-	"Operating System :: OS Independent",
-	"Topic :: Database"
-]
-include = [
-	"LICENCE.md"
+    "Development Status :: 3 - Alpha",
+    "Operating System :: OS Independent",
+    "Topic :: Database",
 ]
 
-[tool.poetry.dependencies]
-python = "^3.8"
-pandas = {version = "^1.3.4", optional = true}
-openpyxl = {version = "^3.0.9", optional = true}
-duckdb = {version = "^0.3.1", optional = true}
-ipykernel = {version = "^6.6.0", optional = true}
-Sphinx = {version = "^4.3.1", optional = true}
-sphinx-autobuild = {version = "^2021.3.14", optional = true}
-sphinx-rtd-theme = {version = "^1.0.0", optional = true}
-sphinx-external-toc = {version = "^0.2.3", optional = true}
-myst-parser = {extras = ["linkify"], version = "^0.16.1", optional = true}
-snowflake-connector-python = {version = "^2.7.2", optional = true}
+[project.optional-dependencies]
+pandas = ["pandas>=1.3.4"]
+notebooks = [
+    "openpyxl>=3.0.9",
+    "duckdb>=0.3.1",
+    "ipykernel>=6.6.0",
+]
+docs = [
+    "Sphinx>=4.3.1,<5",
+    "sphinx-autobuild>=2021.3.14,<2022",
+    "sphinx-rtd-theme>=1.0.0,<2",
+    "sphinx-external-toc>=0.2.3,<0.3",
+    "myst-parser[linkify]>=0.16.1,<0.17",
+    "pandas>=1.3.4",
+    "snowflake-connector-python>=2.7.2",
+]
 
-[tool.poetry.dev-dependencies]
-pytest = "^6.1.1"
-mypy = "^0.910"
-pandas = {version = "^1.3.4"}
+[project.urls]
+Homepage = "https://github.com/akdor1154/python-csql"
+Repository = "https://github.com/akdor1154/python-csql"
+
+[dependency-groups]
+dev = [
+    "pytest>=6.1.1,<7",
+    "mypy>=0.910,<0.911",
+    "pandas>=1.3.4",
+]
+
+[tool.uv]
+
+[tool.uv.build-backend]
+module-name = "csql"
+module-root = ""
+source-include = ["LICENCE.md"]
 
 [build-system]
-requires = ["poetry>=0.12"]
-build-backend = "poetry.masonry.api"
-
-[tool.poetry.extras]
-pandas = ["pandas"]
-notebooks = ["openpyxl", "duckdb", "ipykernel"]
-docs = ["Sphinx", "sphinx-autobuild", "sphinx-rtd-theme", "sphinx-external-toc", "myst-parser", "pandas", "snowflake-connector-python"]
+requires = ["uv_build>=0.11.12,<0.12"]
+build-backend = "uv_build"
 
 [tool.pytest.ini_options]
 log_cli_level="DEBUG"
