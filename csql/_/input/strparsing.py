@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, ClassVar, cast
 from weakref import WeakValueDictionary
 
 if TYPE_CHECKING:
@@ -10,7 +10,9 @@ if TYPE_CHECKING:
 
 
 class InstanceTracking:
-	instances: WeakValueDictionary[int, InstanceTracking] = WeakValueDictionary()
+	instances: ClassVar[WeakValueDictionary[int, InstanceTracking]] = (
+		WeakValueDictionary()
+	)
 
 	# we need to keep some strong refs around for the case where
 	# someone does an fstring with an immediate value:
@@ -19,7 +21,7 @@ class InstanceTracking:
 	# -> Q( "asdf" + "<querybit:1234>") < - at this point there are no references to Q('fdsa') so it is GC'd
 	# -> Q( "asdf<querybut:1234" )
 	# -> ["asdf", instances[1234]] <- bang, 1234 does not exist, it's been GC'd
-	formattedInstances: dict[int, InstanceTracking] = dict()
+	formattedInstances: ClassVar[dict[int, InstanceTracking]] = {}
 
 	def __post_init__(self) -> None:
 		InstanceTracking.instances[hash(self)] = self

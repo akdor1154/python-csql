@@ -5,6 +5,7 @@ from typing import NamedTuple
 
 import duckdb
 import pandas as pd
+from IPython.display import display
 
 import csql
 import csql.dialect
@@ -24,8 +25,8 @@ class DPC(NamedTuple):
 	def close(self):
 		pass
 
-	def __getattr__(self, __name: str):
-		return getattr(self.c, __name)
+	def __getattr__(self, name: str):
+		return getattr(self.c, name)
 
 
 class DP(NamedTuple):
@@ -34,8 +35,8 @@ class DP(NamedTuple):
 	def cursor(self):
 		return DPC(self.d)
 
-	def __getattr__(self, __name: str):
-		return getattr(self.d, __name)
+	def __getattr__(self, name: str):
+		return getattr(self.d, name)
 
 
 dp = DP(d)
@@ -59,7 +60,7 @@ qTab = Q("""
 display(qTab.preview_pd(dp))
 
 # %%
-from csql._.persist import TempTableCacher
+from csql.contrib.persist import TempTableCacher
 
 C = TempTableCacher(dp)
 # %%
@@ -88,7 +89,7 @@ qSlowQuick = Q(f"""
 display(qSlowQuick.preview_pd(dp))
 display(qSlowQuick.build())
 # %%
-newParams = dict(year=2010)
+newParams = {"year": 2010}
 display(qSlowQuick.preview_pd(dp, newParams=newParams))
 display(qSlowQuick.build(newParams=newParams))
 # %%

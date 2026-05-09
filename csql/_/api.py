@@ -17,8 +17,11 @@ if TYPE_CHECKING:
 
 def Q(
 	sql: str,
-	dialect: csql.dialect.SQLDialect | csql.dialect.InferOrDefault = _dialect.InferOrDefault(DefaultDialect),
-	overrides: csql.overrides.Overrides | None | csql.overrides.InferOrDefault = _overrides.InferOrDefault(None),
+	dialect: csql.dialect.SQLDialect
+	| csql.dialect.InferOrDefault = _dialect.InferOrDefault(DefaultDialect),  # noqa: B008
+	overrides: csql.overrides.Overrides
+	| None
+	| csql.overrides.InferOrDefault = _overrides.InferOrDefault(None),  # noqa: B008
 ) -> csql.Query:
 	"""
 	Create a :class:`csql.Query`.
@@ -62,12 +65,12 @@ def Q(
 
 	if isinstance(dialect, _dialect.InferOrDefault):
 		if len(existing_dialects) == 0:
-			dialect = dialect
+			dialect = dialect  # noqa: PLW0127
 		elif len(existing_dialects) == 1:
 			dialect = next(iter(existing_dialects))
 		else:
 			ds = ", ".join(str(d) for d in existing_dialects)
-			raise Exception(
+			raise Exception(  # noqa: TRY002
 				dedent(f"""
 				Found multiple dialects when inferring the default:
 					{ds}.
@@ -78,12 +81,12 @@ def Q(
 
 	if isinstance(overrides, _overrides.InferOrDefault):
 		if len(existing_overrides) == 0:
-			overrides = overrides
+			overrides = overrides  # noqa: PLW0127
 		elif len(existing_overrides) == 1:
 			overrides = next(iter(existing_overrides))
 		else:
 			os = ", ".join(str(o) for o in existing_overrides)
-			raise Exception(
+			raise Exception(  # noqa: TRY002
 				dedent(f"""
 				Found multiple overrides when inferring the default:
 					{os}.

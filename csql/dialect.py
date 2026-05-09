@@ -8,7 +8,7 @@ from ._.models.dialect import (
 	SQLDialect,
 )
 
-DefaultDialect = DefaultDialect  # give sphinx a nudge
+DefaultDialect = DefaultDialect  # give sphinx a nudge  # noqa: PLW0127
 """The default dialect for ``csql``."""
 
 Snowflake = SQLDialect(paramstyle=ParamStyle.numeric, limit=Limit.limit)

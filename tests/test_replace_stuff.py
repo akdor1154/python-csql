@@ -17,7 +17,6 @@ def test_replace_identity():
 	assert q2_2 == q2
 	assert q2_2 is q2
 
-	q2_2_built = q2_2.build
 	assert q2_2.build() == q2_built
 
 
@@ -26,8 +25,6 @@ def test_replace_simple():
 	q1 = Q("select 1 from root")
 	q2 = Q(f"select count(*) from {q1} as q1")
 	q3 = Q(f"select * from {q2} q2 join {q1} q1")
-
-	q2_built = q3.build()
 
 	i = 0
 

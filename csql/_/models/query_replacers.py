@@ -1,4 +1,5 @@
 import dataclasses
+from collections.abc import Mapping
 from typing import Any, Protocol
 
 from .query import ParameterPlaceholder, Parameters, PreBuild, Query, QueryBit
@@ -11,8 +12,7 @@ class PartReplacer(Protocol):
 	means you can go changing parameters, adding sql comments, etc.
 	"""
 
-	def __call__(self, p: str | QueryBit) -> str | QueryBit:
-		pass
+	def __call__(self, p: str | QueryBit) -> str | QueryBit: ...
 
 
 class QueryReplacer(Protocol):
@@ -27,8 +27,7 @@ class QueryReplacer(Protocol):
 	it recursively.
 	"""
 
-	def __call__(self, q: Query) -> Query:
-		pass
+	def __call__(self, q: Query) -> Query: ...
 
 
 def replace_queries_in_tree(fn: QueryReplacer, q: Query) -> Query:
@@ -67,7 +66,7 @@ def _replace_query_parts(fn: PartReplacer, q: Query) -> Query:
 		return dataclasses.replace(q, queryParts=new_parts)
 
 
-def params_replacer(newParams: dict[str, Any] | None) -> QueryReplacer:
+def params_replacer(newParams: Mapping[str, Any] | None) -> QueryReplacer:
 	"""This builds a QueryReplacer that handles re-parameterization."""
 	if newParams is None:
 		return lambda q: q
@@ -102,7 +101,7 @@ def pre_build_replacer() -> QueryReplacer:
 		elif isinstance(result, Query):
 			return result
 		else:
-			raise Exception(
+			raise ValueError(
 				f"prebuild needs to return None or a Query, it returned {result!r}!"
 			)
 

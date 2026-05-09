@@ -49,7 +49,7 @@ def test_persist_reparameterize():
 		res2 = con.execute(*q2.db).fetchall()
 		assert res2 == [(246,)]
 
-		res2_reparam = con.execute(*q2.build(newParams=dict(val=100)).db).fetchall()
+		res2_reparam = con.execute(*q2.build(newParams={"val": 100}).db).fetchall()
 		assert res2_reparam == [(200,)]
 
 	con = Mock()
@@ -89,9 +89,7 @@ def test_persist_chained():
 		hooked_saves = {}
 
 		class HookedTempTableCacher(TempTableCacher):
-			def _persist(
-				self, rq: RenderedQuery, key: Key, tag: str | None
-			) -> Query:
+			def _persist(self, rq: RenderedQuery, key: Key, tag: str | None) -> Query:
 				hooked_saves[tag] = rq
 				return super()._persist(rq, key, tag)
 

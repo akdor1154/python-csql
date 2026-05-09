@@ -81,10 +81,8 @@ class BoringSQLRenderer(QueryRenderer):
 
 		cteParts = []
 		depNames = {}
-		i = 0
-		for dep in query._getDeps():
+		for i, dep in enumerate(query._getDeps()):
 			subName = f"_subQuery{i}"
-			i += 1
 			depNames[id(dep)] = subName
 			cteParts.append((subName, dep))
 

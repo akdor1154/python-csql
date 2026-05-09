@@ -192,7 +192,7 @@ def test_dialect_propagation_error_on_ambiguity():
 	q2 = Q(f"select 2 where val = {p['defg']}", dialect=dialect2)
 
 	with pytest.raises(Exception, match=".*Found multiple dialects.*"):
-		q3 = Q(f"select * from {q1} join {q2}")
+		_q3 = Q(f"select * from {q1} join {q2}")
 
 
 def test_overrides_propagation():

@@ -7,7 +7,6 @@ from collections.abc import Collection as CollectionABC
 from typing import (
 	TYPE_CHECKING,
 	NewType,
-	assert_never,
 )
 
 from ..models.dialect import ParamStyle, SQLDialect
@@ -33,9 +32,7 @@ class ParamList:
 		self._params = []
 		self._param_names = []
 
-	def add(
-		self, param: ScalarParameterValue, name: AutoKey | str | None
-	) -> int:
+	def add(self, param: ScalarParameterValue, name: AutoKey | str | None) -> int:
 		self._params.append(param)
 		self._param_names.append(name if isinstance(name, str) else None)
 		return len(self._params) - 1
@@ -114,10 +111,10 @@ class ParameterRenderer(ABC):
 		paramKey = param.key
 		paramValue = param.value
 		if isinstance(paramValue, CollectionABC) and not isinstance(paramValue, str):
-			indices, sql = self._renderCollection(paramKey, paramValue)
+			_indices, sql = self._renderCollection(paramKey, paramValue)
 		else:
 			index, sql = self._renderScalar(paramKey, paramValue)
-			indices = [index]
+			_indices = [index]
 		return sql
 
 

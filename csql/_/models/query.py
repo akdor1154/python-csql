@@ -5,7 +5,7 @@ import dataclasses
 # from .persisted_query import PersistedQuery
 import itertools
 from abc import ABCMeta
-from collections.abc import Collection, Hashable, Iterable
+from collections.abc import Collection, Hashable, Iterable, Mapping
 from dataclasses import dataclass
 from typing import (
 	TYPE_CHECKING,
@@ -32,16 +32,6 @@ if TYPE_CHECKING:
 
 	from .overrides import Overrides
 
-import sys
-
-if sys.version_info >= (3, 9):
-	import collections.abc
-
-	_Sequence = collections.abc.Sequence
-else:
-	import typing
-
-	_Sequence = typing.Sequence
 
 ScalarParameterValue = Hashable
 
@@ -74,7 +64,7 @@ class RenderedQuery(NamedTuple):
 		>>> pd.read_sql(**q.build().pd, con=con) # doctest: +IGNORE_RESULT
 
 		"""
-		return dict(sql=self.sql, params=self.parameters)
+		return {"sql": self.sql, "params": self.parameters}
 
 	@property
 	def db(self) -> tuple[str, ParameterList]:
@@ -168,7 +158,7 @@ class Query(QueryBit, InstanceTracking):
 		con: Any,
 		rows: int = 10,
 		dialect: csql.dialect.SQLDialect | None = None,
-		newParams: dict[str, ParameterValue] | None = None,
+		newParams: Mapping[str, ParameterValue] | None = None,
 		overrides: csql.overrides.Overrides | None = None,
 	) -> pd.DataFrame:
 		"""
@@ -204,7 +194,7 @@ class Query(QueryBit, InstanceTracking):
 		self,
 		*,
 		dialect: csql.dialect.SQLDialect | None = None,
-		newParams: dict[str, ParameterValue] | None = None,
+		newParams: Mapping[str, ParameterValue] | None = None,
 		overrides: csql.overrides.Overrides | None = None,
 	) -> csql.RenderedQuery:
 		"""
@@ -236,7 +226,7 @@ class Query(QueryBit, InstanceTracking):
 			else ParameterRenderer.get(dialect)
 		)
 		if not issubclass(ParamRenderer, ParameterRenderer):
-			raise ValueError(
+			raise TypeError(
 				f"{ParamRenderer} needs to be a subclass of csql.ParameterRenderer"
 			)
 
@@ -246,7 +236,7 @@ class Query(QueryBit, InstanceTracking):
 			else BoringSQLRenderer
 		)
 		if not issubclass(QR, QueryRenderer):
-			raise ValueError(
+			raise TypeError(
 				f"{QueryRenderer} needs to be a subclass of csql.SQLRenderer"
 			)
 		queryRenderer = QR(ParamRenderer, dialect=dialect)
@@ -379,7 +369,7 @@ class Parameters:
 		if isinstance(val, Collection) and not isinstance(val, str):
 			val = tuple(val)
 		try:
-			h = hash(val)
+			_h = hash(val)
 			return cast(Hashable, val)
 		except TypeError as e:
 			raise ValueError(

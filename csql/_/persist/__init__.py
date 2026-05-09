@@ -1,16 +1,14 @@
 from __future__ import annotations
 
-import functools
 import hashlib
 import logging
 import pickle
 import threading
-import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Dict, Optional
+from typing import TYPE_CHECKING, ClassVar
 
 from csql import Q as Q
 
@@ -55,8 +53,8 @@ Key = str  # I keep changing my mind between str, int, bytes...
 
 
 class KeyLookup:
-	saved: dict[Key, Query] = {}
-	locks: dict[Key, threading.Lock] = defaultdict(threading.Lock)
+	saved: ClassVar[dict[Key, Query]] = {}
+	locks: ClassVar[dict[Key, threading.Lock]] = defaultdict(threading.Lock)
 	_lock = threading.Lock()
 
 	def _get_lock(self, key: Key) -> threading.Lock:
