@@ -28,7 +28,7 @@ class SnowflakeResultSetCacher(Cacher):
 	:type connection: `snowflake.connector.Connection <https://docs.snowflake.com/en/user-guide/python-connector-api.html#object-connection>`_
 	"""
 
-	def __init__(self, connection: snowflake.connector.Connection):
+	def __init__(self, connection: snowflake.connector.SnowflakeConnection):
 		self._con = connection
 
 	def _persist(self, rq: RenderedQuery, key: Key, tag: str | None) -> Query:

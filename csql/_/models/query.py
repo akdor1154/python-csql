@@ -241,7 +241,7 @@ class Query(QueryBit, InstanceTracking):
 			)
 
 		QR: type[QueryRenderer] = (
-			overrides.queryRenderer  # type: ignore # mypy bug
+			overrides.queryRenderer
 			if overrides.queryRenderer is not None
 			else BoringSQLRenderer
 		)

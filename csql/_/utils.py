@@ -7,7 +7,6 @@ from typing import (
 	Generic,
 	NoReturn,
 	TypeVar,
-	assert_never,
 )
 
 if TYPE_CHECKING:
