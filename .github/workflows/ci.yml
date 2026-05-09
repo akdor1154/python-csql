@@ -24,6 +24,7 @@ jobs:
           python-version: "${{ matrix.python-version }}"
       - run: uv sync
       - run: make ruff
+      - run: make pyright
       - run: make mypy
       - run: make pytest
 
