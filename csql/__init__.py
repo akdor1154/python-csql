@@ -13,6 +13,7 @@ from ._.models.query import (
 	Parameters,
 	ParameterValue,
 	Query,
+	QueryBit,
 	RenderedQuery,
 )
 from .overrides import Overrides as _Deprecated_Overrides
@@ -24,6 +25,7 @@ __all__ = [
 	"Parameters",
 	"Q",
 	"Query",
+	"QueryBit",
 	"RenderedQuery",
 ]
 
