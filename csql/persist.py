@@ -1,5 +1,4 @@
 # mypy: implicit-reexport
-from ._.persist import (
-	Cacher,
-	Key
-)
+# pyright: reportUnusedImport=false
+# ruff: noqa: F401
+from ._.persist import Cacher, Key

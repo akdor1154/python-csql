@@ -1,0 +1,7 @@
+preview = true
+target-version = "py310"
+[format]
+indent-style = "tab"
+[lint]
+extend-select = ["UP"]
+ignore = ["N999"] # invalid module name test_Q_blah

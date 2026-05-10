@@ -1,17 +1,22 @@
-from typing import *
-from .query import QueryBit, Query, PreBuild, ParameterPlaceholder, Parameters
 import dataclasses
+from collections.abc import Mapping
+from typing import Any, Protocol
+
+from .query import ParameterPlaceholder, Parameters, PreBuild, Query, QueryBit
+
 
 class PartReplacer(Protocol):
-	'''
+	"""
 	A PartReplacer is a function that is called on each of a Query's QueryParts,
 	and is expected to return a replacement Part, or the same Part unchanged. This
 	means you can go changing parameters, adding sql comments, etc.
-	'''
-	def __call__(self, p: Union[str, QueryBit]) -> Union[str, QueryBit]: pass
+	"""
+
+	def __call__(self, p: str | QueryBit) -> str | QueryBit: ...
+
 
 class QueryReplacer(Protocol):
-	'''
+	"""
 	A QueryReplacer is a function that is called on a single Query, and is expected
 	to return a copy of the input Query that has been modiifed in some way.
 
@@ -20,32 +25,37 @@ class QueryReplacer(Protocol):
 	QueryReplacers should not recurse into other queries found in queryParts - recursion
 	is handled by `_replace_queries_in_tree()`, which takes a QueryReplacer as input and applies
 	it recursively.
-	'''
-	def __call__(self, q: Query) -> Query: pass
+	"""
+
+	def __call__(self, q: Query) -> Query: ...
+
 
 def replace_queries_in_tree(fn: QueryReplacer, q: Query) -> Query:
 	"""Replace every q in a tree with fn(q), beginning with the leaves."""
 	import functools
 
-	def replace_queries(p: Union[str, QueryBit]) -> Union[str, QueryBit]:
+	def replace_queries(p: str | QueryBit) -> str | QueryBit:
 		if isinstance(p, Query):
 			return rewrite_query(p)
 		else:
 			return p
 
-	@functools.lru_cache(maxsize=None)
+	@functools.cache
 	def rewrite_query(q: Query) -> Query:
 
 		new_q = _replace_query_parts(replace_queries, q)
 
 		result = fn(new_q)
 
-		if not isinstance(result, Query):
-			raise TypeError(f'{fn} returned None! fn passed to QueryReplacer needs to always return a Query.')
-		
+		if not isinstance(result, Query):  # pyright: ignore[reportUnnecessaryIsInstance]
+			raise TypeError(
+				f"{fn} returned None! fn passed to QueryReplacer needs to always return a Query."
+			)
+
 		return result
 
 	return rewrite_query(q)
+
 
 def _replace_query_parts(fn: PartReplacer, q: Query) -> Query:
 	"""Replaces every bit in q with fn(bit). If the result is the same, q is returned unchanged."""
@@ -55,15 +65,20 @@ def _replace_query_parts(fn: PartReplacer, q: Query) -> Query:
 	else:
 		return dataclasses.replace(q, queryParts=new_parts)
 
-def params_replacer(newParams: Optional[Dict[str, Any]]) -> QueryReplacer:
-	''' This builds a QueryReplacer that handles re-parameterization. '''
+
+def params_replacer(newParams: Mapping[str, Any] | None) -> QueryReplacer:
+	"""This builds a QueryReplacer that handles re-parameterization."""
 	if newParams is None:
 		return lambda q: q
 
-	_newParams = Parameters(**newParams) # checks if hashable.
-	
-	def part_replacer(p: Union[str, QueryBit]) -> Union[str, QueryBit]:
-		if (isinstance(p, ParameterPlaceholder) and isinstance(p.key, str) and p.key in _newParams):
+	_newParams = Parameters(**newParams)  # checks if hashable.
+
+	def part_replacer(p: str | QueryBit) -> str | QueryBit:
+		if (
+			isinstance(p, ParameterPlaceholder)
+			and isinstance(p.key, str)
+			and p.key in _newParams
+		):
 			return _newParams[p.key]
 		else:
 			return p
@@ -73,16 +88,21 @@ def params_replacer(newParams: Optional[Dict[str, Any]]) -> QueryReplacer:
 
 	return query_replacer
 
+
 def pre_build_replacer() -> QueryReplacer:
-	''' This builds a QueryReplacer that handles executing pre-build hooks. '''
+	"""This builds a QueryReplacer that handles executing pre-build hooks."""
+
 	def query_replacer(q: Query) -> Query:
 		if (preBuild := q._get_extension(PreBuild)) is None:
 			return q
 		result = preBuild.hook()
 		if result is None:
 			return q
-		elif isinstance(result, Query):
+		elif isinstance(result, Query):  # pyright: ignore[reportUnnecessaryIsInstance]
 			return result
 		else:
-			raise Exception(f'prebuild needs to return None or a Query, it returned {repr(result)}!')
+			raise ValueError(
+				f"prebuild needs to return None or a Query, it returned {result!r}!"
+			)
+
 	return query_replacer

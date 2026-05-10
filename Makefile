@@ -1,17 +1,21 @@
-lint: mypy
+lint: pyright ruff
 
-mypy:
-	poetry run mypy csql tests
+pyright:
+	uv run pyright
+
+ruff:
+	uv run ruff check
+	uv run ruff format --check
 
 test: pytest doctest
 
 pytest:
-	poetry run pytest
+	uv run pytest
 
 doctest:
-	cd docs; poetry run $(MAKE) doctest
+	cd docs; uv run $(MAKE) doctest
 
 docs:
-	cd docs; poetry run $(MAKE) html SPHINXOPTS="-W --keep-going -n"
+	cd docs; uv run $(MAKE) html SPHINXOPTS="-W --keep-going -n"
 
-.PHONY: test docs lint mypy pytest doctest
+.PHONY: test docs lint pyright pytest doctest

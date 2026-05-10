@@ -1,9 +1,9 @@
 [project]
 name = "csql"
-version = "0.11.0"
+version = "0.12.0b1"
 description = "Simple library for writing composeable SQL queries"
 authors = [{ name = "Jarrad Whitaker", email = "akdor1154@gmail.com" }]
-requires-python = ">=3.8,<4"
+requires-python = ">=3.10,<4"
 readme = "README.md"
 license = "LGPL-3.0-or-later"
 keywords = [
@@ -18,20 +18,7 @@ classifiers = [
 
 [project.optional-dependencies]
 pandas = ["pandas>=1.3.4"]
-notebooks = [
-    "openpyxl>=3.0.9",
-    "duckdb>=0.3.1",
-    "ipykernel>=6.6.0",
-]
-docs = [
-    "Sphinx>=4.3.1,<5",
-    "sphinx-autobuild>=2021.3.14,<2022",
-    "sphinx-rtd-theme>=1.0.0,<2",
-    "sphinx-external-toc>=0.2.3,<0.3",
-    "myst-parser[linkify]>=0.16.1,<0.17",
-    "pandas>=1.3.4",
-    "snowflake-connector-python>=2.7.2",
-]
+polars = ["polars>=1.40.1"]
 
 [project.urls]
 Homepage = "https://github.com/akdor1154/python-csql"
@@ -39,12 +26,35 @@ Repository = "https://github.com/akdor1154/python-csql"
 
 [dependency-groups]
 dev = [
-    "pytest>=6.1.1,<7",
-    "mypy>=0.910,<0.911",
+    "pytest>=6.1.1",
+    "mypy>=0.910",
     "pandas>=1.3.4",
+    "ruff>=0.15.12",
+    "pyright>=1.1.409",
+]
+notebooks = [
+    "openpyxl>=3.0.9",
+    "duckdb>=0.3.1",
+    "ipykernel>=6.6.0",
+]
+docs = [
+    "Sphinx>=4.3.1,<7",
+    "sphinx-autobuild>=2021.3.14",
+    "sphinx-rtd-theme>=1.0.0",
+    "sphinx-external-toc>=0.2.3",
+    "myst-parser[linkify]>=0.16.1",
+    "pandas",
+    "clickhouse-connect",
+    "polars",
+    "snowflake-connector-python>=2.7.2",
+]
+notebook = [
+    "clickhouse-connect>=0.15.1",
+    "fastexcel>=0.20.2",
 ]
 
 [tool.uv]
+default-groups = ["dev", "notebooks", "docs"]
 
 [tool.uv.build-backend]
 module-name = "csql"
@@ -57,3 +67,4 @@ build-backend = "uv_build"
 
 [tool.pytest.ini_options]
 log_cli_level="DEBUG"
+addopts="--ignore=notebooks"
