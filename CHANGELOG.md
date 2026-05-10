@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.12.0
+
+### New stuff:
+ - Clickhouse parameters support. Has a wonderful abuse of syntax so `Q(f"select {p.param:String}")` actually works.
+ - `.ddb` (duckdb), `.ch`, (clickhouse), and `.pl` (polars) query args helpers
+ - `.preview_pl()` (preview with polars) method
+ - `preview_*` can now take (optional) rows=None, in which case the query itself will be ran unmodified.
+
 ## v0.11.0
 
 ### Breaking changes:
