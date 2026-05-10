@@ -1,11 +1,11 @@
-lint: mypy ruff
+lint: pyright ruff
+
+pyright:
+	uv run pyright
 
 ruff:
 	uv run ruff check
 	uv run ruff format --check
-
-mypy:
-	uv run mypy csql tests
 
 test: pytest doctest
 
@@ -18,4 +18,4 @@ doctest:
 docs:
 	cd docs; uv run $(MAKE) html SPHINXOPTS="-W --keep-going -n"
 
-.PHONY: test docs lint mypy pytest doctest
+.PHONY: test docs lint pyright pytest doctest

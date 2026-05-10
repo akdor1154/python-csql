@@ -25,7 +25,6 @@ jobs:
       - run: uv sync
       - run: make ruff
       - run: make pyright
-      - run: make mypy
       - run: make pytest
 
   docs:
