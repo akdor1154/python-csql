@@ -60,6 +60,8 @@ autodoc_type_aliases = {
 
 # -- myst stuff
 myst_enable_extensions = ["linkify"]
+# README is sliced into sub-sections that don't start at H1, which is fine.
+suppress_warnings = ["myst.header"]
 tab_width = 4
 
 # -- doctest stuff

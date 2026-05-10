@@ -14,6 +14,7 @@ from ._.models.query import (
 	PolarsQueryArgs,
 	Query,
 	QueryBit,
+	QueryExtension,
 	RenderedQuery,
 )
 from ._.models.query import (
@@ -31,6 +32,7 @@ __all__ = [
 	"Q",
 	"Query",
 	"QueryBit",
+	"QueryExtension",
 	"RenderedQuery",
 ]
 

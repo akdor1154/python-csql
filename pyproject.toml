@@ -38,7 +38,7 @@ notebooks = [
     "ipykernel>=6.6.0",
 ]
 docs = [
-    "Sphinx>=4.3.1,<7",
+    "Sphinx>=4.3.1",
     "sphinx-autobuild>=2021.3.14",
     "sphinx-rtd-theme>=1.0.0",
     "sphinx-external-toc>=0.2.3",
