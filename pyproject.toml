@@ -1,6 +1,6 @@
 [project]
 name = "csql"
-version = "0.12.0b1"
+version = "0.12.0b2"
 description = "Simple library for writing composeable SQL queries"
 authors = [{ name = "Jarrad Whitaker", email = "akdor1154@gmail.com" }]
 requires-python = ">=3.10,<4"
