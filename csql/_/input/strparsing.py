@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextvars
 import re
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, ClassVar, cast
@@ -44,6 +45,23 @@ class InstanceTracking:
 		if hash(self) in InstanceTracking.formattedInstances:
 			del InstanceTracking.formattedInstances[hash(self)]
 
+
+# bunch of nonsense to make the instance tracking work even if this module is reloaded -
+# it's common for csql to be used in python notebooks with ipython's autoreload extension.
+for var, val in contextvars.copy_context().items():
+	if var.name == "_csql_instance_tracking":
+		PersistIT, prev = var, val
+		break
+else:
+	PersistIT, prev = (
+		contextvars.ContextVar[type[InstanceTracking]]("_csql_instance_tracking"),
+		None,
+	)
+if prev is not None:
+	print(f"copying from previous: {prev.instances=}")
+	InstanceTracking.instances = prev.instances
+	InstanceTracking.formattedInstances = prev.formattedInstances
+PersistIT.set(InstanceTracking)
 
 # problem:
 # intermediate values are GCd before they can be recalled
