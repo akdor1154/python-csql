@@ -40,9 +40,16 @@ def assert_never(x: NoReturn) -> NoReturn:
 	assert False, f"Unhandled type: {type(x).__name__}"
 
 
-def limit_query(query: Query, rows: int, dialect: SQLDialect) -> Query:
+def limit_query(
+	query: Query, rows: int | None, dialect: SQLDialect | None = None
+) -> Query:
 	from .api import Q
 	from .models.dialect import Limit
+
+	if rows is None:
+		return query
+
+	dialect = dialect or query._default_dialect()
 
 	if dialect.limit is Limit.limit:
 		query_str = f"select * from {query} limit {rows}"
