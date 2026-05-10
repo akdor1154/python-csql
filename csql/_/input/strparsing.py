@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, ClassVar, cast
 from weakref import WeakValueDictionary
 
 if TYPE_CHECKING:
+	from typing_extensions import Self
+
 	from ..models.query import QueryBit
 
 
@@ -26,9 +28,14 @@ class InstanceTracking:
 	def __post_init__(self) -> None:
 		InstanceTracking.instances[hash(self)] = self
 
-	def __format__(self, spec: str) -> str:
-		self._hold()
-		return f"〈QueryBit:{hash(self)}〉"
+	def _withFmt(self, fmt: str) -> Self:
+		return self
+
+	def __format__(self, fmt: str) -> str:
+
+		newSelf = self._withFmt(fmt)
+		newSelf._hold()
+		return f"〈QueryBit:{hash(newSelf)}〉"
 
 	def _hold(self) -> None:
 		InstanceTracking.formattedInstances[hash(self)] = self

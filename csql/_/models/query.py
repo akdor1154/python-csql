@@ -12,6 +12,7 @@ from typing import (
 	Any,
 	NamedTuple,
 	Protocol,
+	TypedDict,
 	TypeVar,
 	cast,
 )
@@ -77,8 +78,17 @@ class RenderedQuery(NamedTuple):
 		"""
 		return (self.sql, self.parameters)
 
+	@property
+	def ch(self) -> ClickhouseQueryArgs:
+		return {"query": self.sql, "parameters": self.params_dict}
+
 	def __repr__(self) -> str:
 		return f"RenderedQuery({self.sql!r}, {self.parameters!r})"
+
+
+class ClickhouseQueryArgs(TypedDict):
+	query: str
+	parameters: dict[str, Hashable]
 
 
 class QueryBit(metaclass=ABCMeta):
@@ -283,6 +293,22 @@ class Query(QueryBit, InstanceTracking):
 
 		"""
 		return self.build().db
+
+	@property
+	def ch(self) -> ClickhouseQueryArgs:
+		"""
+		Convenience wrapper for :meth:`Query.build().db<RenderedQuery.ch>`.
+
+		Returns a dict of ``{'query':query, 'parameters':params}``,
+		for usage like:
+
+		>>> # doctest: +SKIP - needs a running clickhouse server
+		>>> import clickhouse_connect
+		>>> ch = clickhouse_connect.create_client(password='asdf')
+		>>> q = Q('select 123')
+		>>> ch.query_df_arrow(**q.ch, dataframe_library='polars') # doctest: +IGNORE_RESULT
+		"""
+		return self.build().ch
 
 	def persist(
 		self, cacher: csql.persist.Cacher, tag: str | None = None

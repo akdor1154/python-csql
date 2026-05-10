@@ -32,7 +32,7 @@ class UDFParameterRenderer(ParameterRenderer):
 
 	"""
 
-	def _renderScalarSql(self, index: int, key: str | AutoKey | None) -> SQL:
+	def _renderScalarSql(self, index: int, key: str | AutoKey | None, fmt: str) -> SQL:
 		"Override rendering to render parameters as just their key"
 		if key is None:
 			raise ValueError(

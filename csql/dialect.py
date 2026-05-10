@@ -20,3 +20,5 @@ DuckDB = SQLDialect(paramstyle=ParamStyle.numeric_dollar, limit=Limit.limit)
 
 MSSQL = SQLDialect(paramstyle=ParamStyle.numeric, limit=Limit.top_n)
 """A dialect for MS SQL Server"""
+
+ClickHouse = SQLDialect(paramstyle=ParamStyle.clickhouse, limit=Limit.limit)

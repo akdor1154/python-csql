@@ -34,6 +34,10 @@ class ParamStyle(enum.Enum):
 
 	:meta hide-value:
 	"""
+	clickhouse = auto()
+	"""
+	Use placeholders like ``{MyParam:String}``
+	"""
 
 	def __repr__(self) -> str:
 		return "ParamStyle." + self.name
@@ -107,6 +111,9 @@ DuckDB = SQLDialect(paramstyle=ParamStyle.numeric_dollar, limit=Limit.limit)
 
 MSSQL = SQLDialect(paramstyle=ParamStyle.numeric, limit=Limit.top_n)
 """A dialect for MS SQL Server"""
+
+ClickHouse = SQLDialect(paramstyle=ParamStyle.clickhouse, limit=Limit.limit)
+
 # def __repr__(self) -> str:
 # 	import inspect
 # 	mod = inspect.getmodule(self)
