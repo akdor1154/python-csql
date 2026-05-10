@@ -7,6 +7,7 @@ from ._.models.dialect import (
 	Limit,
 	ParamStyle,
 	SQLDialect,
+	SQLite,
 )
 
 DefaultDialect = DefaultDialect  # give sphinx a nudge  # noqa: PLW0127
@@ -22,3 +23,5 @@ MSSQL = SQLDialect(paramstyle=ParamStyle.numeric, limit=Limit.top_n)
 """A dialect for MS SQL Server"""
 
 ClickHouse = SQLDialect(paramstyle=ParamStyle.clickhouse, limit=Limit.limit)
+
+SQLite = SQLite  # noqa: PLW0127

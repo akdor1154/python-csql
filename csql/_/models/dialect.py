@@ -112,6 +112,9 @@ DuckDB = SQLDialect(paramstyle=ParamStyle.numeric_dollar, limit=Limit.limit)
 MSSQL = SQLDialect(paramstyle=ParamStyle.numeric, limit=Limit.top_n)
 """A dialect for MS SQL Server"""
 
+SQLite = SQLDialect(paramstyle=ParamStyle.qmark, limit=Limit.limit)
+"""A dialect for SQLite."""
+
 ClickHouse = SQLDialect(paramstyle=ParamStyle.clickhouse, limit=Limit.limit)
 
 # def __repr__(self) -> str:

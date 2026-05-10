@@ -2,6 +2,7 @@ import re
 import sqlite3
 from unittest.mock import Mock
 
+import csql.dialect
 from csql import Parameters, Q, Query
 from csql.contrib.persist import Key, TempTableCacher
 
@@ -43,7 +44,9 @@ def test_persist_reparameterize():
 		c = TempTableCacher(con)
 		p = Parameters(val=123)
 
-		q1 = Q(f""" select {p["val"]} as val """).persist(c)
+		q1 = Q(f""" select {p["val"]} as val """, dialect=csql.dialect.SQLite).persist(
+			c
+		)
 		q2 = Q(f""" select val*2 as v2 from {q1} """)
 
 		res2 = con.execute(*q2.db).fetchall()
