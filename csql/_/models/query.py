@@ -79,6 +79,12 @@ class RenderedQuery(NamedTuple):
 		return (self.sql, self.parameters)
 
 	@property
+	def params_dict(self) -> dict[str, Hashable]:
+		return {
+			k: v for k, v in zip(self.parameter_names, self.parameters) if k is not None
+		}
+
+	@property
 	def ch(self) -> ClickhouseQueryArgs:
 		return {"query": self.sql, "parameters": self.params_dict}
 
