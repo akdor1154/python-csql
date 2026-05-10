@@ -23,6 +23,8 @@ from .dialect import SQLDialect
 
 if TYPE_CHECKING:
 	import pandas as pd  # pyright: ignore[reportMissingTypeStubs]
+	import polars as pl
+	from typing_extensions import Self
 
 	# import public interface so we can avoid internal ._....  appearing in
 	# function signatures, doco, etc.
@@ -88,6 +90,14 @@ class RenderedQuery(NamedTuple):
 	def ch(self) -> ClickhouseQueryArgs:
 		return {"query": self.sql, "parameters": self.params_dict}
 
+	@property
+	def ddb(self) -> DuckDBQueryArgs:
+		return {"query": self.sql, "params": self.parameters}
+
+	@property
+	def pl(self) -> PolarsQueryArgs:
+		return {"query": self.sql, "execute_options": {"parameters": self.parameters}}
+
 	def __repr__(self) -> str:
 		return f"RenderedQuery({self.sql!r}, {self.parameters!r})"
 
@@ -95,6 +105,16 @@ class RenderedQuery(NamedTuple):
 class ClickhouseQueryArgs(TypedDict):
 	query: str
 	parameters: dict[str, Hashable]
+
+
+class DuckDBQueryArgs(TypedDict):
+	query: str
+	params: ParameterList
+
+
+class PolarsQueryArgs(TypedDict):
+	query: str
+	execute_options: dict[str, Any]
 
 
 class QueryBit(metaclass=ABCMeta):
@@ -172,7 +192,7 @@ class Query(QueryBit, InstanceTracking):
 	def preview_pd(
 		self,
 		con: Any,
-		rows: int = 10,
+		rows: int | None = 10,
 		dialect: csql.dialect.SQLDialect | None = None,
 		newParams: Mapping[str, ParameterValue] | None = None,
 		overrides: csql.overrides.Overrides | None = None,
@@ -197,13 +217,51 @@ class Query(QueryBit, InstanceTracking):
 
 		from ..utils import limit_query
 
-		dialect = dialect or self._default_dialect()  # TODO - is this needed?
 		previewQ = limit_query(self, rows, dialect)
 		return pd.read_sql(  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
 			**previewQ.build(
 				dialect=dialect, newParams=newParams, overrides=overrides
 			).pd,
 			con=con,
+		)
+
+	def preview_pl(
+		self,
+		con: Any,
+		rows: int | None = 10,
+		dialect: csql.dialect.SQLDialect | None = None,
+		newParams: Mapping[str, ParameterValue] | None = None,
+		overrides: csql.overrides.Overrides | None = None,
+	) -> pl.DataFrame:
+		import polars as pl
+
+		from ..utils import limit_query
+
+		previewQ = limit_query(self, rows, dialect)
+		preview = previewQ.build(
+			dialect=dialect, newParams=newParams, overrides=overrides
+		)
+
+		try:
+			import clickhouse_connect  # pyright: ignore[reportMissingTypeStubs]
+			import clickhouse_connect.driver  # pyright: ignore[reportMissingTypeStubs]
+		except ImportError:
+			clickhouse_connect = None
+
+		if clickhouse_connect is not None and isinstance(
+			con, clickhouse_connect.driver.Client
+		):
+			return con.query_df_arrow(**preview.ch, dataframe_library="polars")  # pyright: ignore[reportUnknownVariableType, reportUnknownMemberType] # mypy: ignore[no-any-return]
+
+		try:
+			import duckdb
+		except ImportError:
+			duckdb = None  # mypy: ignore[assignment]
+		if duckdb is not None and isinstance(con, duckdb.DuckDBPyConnection):
+			return con.query(**preview.ddb).pl()
+
+		return pl.read_database(  # pyright: ignore[reportUnknownMemberType]
+			preview.sql, con, execute_options={"parameters": preview.parameters}
 		)
 
 	def build(
@@ -301,6 +359,37 @@ class Query(QueryBit, InstanceTracking):
 		return self.build().db
 
 	@property
+	def pl(self) -> PolarsQueryArgs:
+		"""
+		Convenience wrapper for :meth:`Query.build().db<RenderedQuery.pl>`.
+
+		Returns a dict of ``{'query':query, 'execute_options':{'parameters':params}}``,
+		for usage like:
+
+		>>> import polars as pl
+		>>> con = my_connection()
+		>>> q = Q('select 123')
+		>>> pl.read_database(**q.pl, connection=con) # doctest: +IGNORE_RESULT
+
+		"""
+		return self.build().pl
+
+	@property
+	def ddb(self) -> DuckDBQueryArgs:
+		"""
+		Convenience wrapper for :meth:`Query.build().db<RenderedQuery.ddb>`.
+
+		Returns a dict of ``{'query':query, 'params':params}``,
+		for usage like:
+
+		>>> import duckdb
+		>>> con = duckdb.connect()
+		>>> q = Q('select 123')
+		>>> con.query(**q.ddb).pl # doctest: +IGNORE_RESULT
+		"""
+		return self.build().ddb
+
+	@property
 	def ch(self) -> ClickhouseQueryArgs:
 		"""
 		Convenience wrapper for :meth:`Query.build().db<RenderedQuery.ch>`.
@@ -361,6 +450,10 @@ class ParameterPlaceholder(QueryBit, InstanceTracking):
 	_key_context: (
 		int | None
 	)  # allow people to pass multiple distinct parameters with the same key into a Query.
+	fmt: str
+
+	def _withFmt(self, fmt: str) -> Self:
+		return dataclasses.replace(self, fmt=fmt)
 
 
 @dataclass(frozen=True)
@@ -471,8 +564,12 @@ class Parameters:
 
 	def __getitem__(self, key: str | AutoKey) -> ParameterPlaceholder:
 		paramVal = self.params[key]  # check existence
-		return ParameterPlaceholder(key=key, value=paramVal, _key_context=id(self))
+		return ParameterPlaceholder(
+			key=key, value=paramVal, _key_context=id(self), fmt=""
+		)
 
 	def __getattr__(self, key: str) -> ParameterPlaceholder:
 		paramVal = self.params[key]  # check existence
-		return ParameterPlaceholder(key=key, value=paramVal, _key_context=id(self))
+		return ParameterPlaceholder(
+			key=key, value=paramVal, _key_context=id(self), fmt=""
+		)
