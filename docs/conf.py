@@ -131,7 +131,11 @@ doctest.OutputChecker = CustomOutputChecker
 intersphinx_mapping = {
 	"python": ("https://docs.python.org/3", None),
 	"pandas": ("https://pandas.pydata.org/docs/", None),
+	"polars": ("https://docs.pola.rs/api/python/stable/", None),
 }
+
+# polars's published inventory doesn't index the DataFrame class itself, only its methods.
+nitpick_ignore = [("py:class", "polars.DataFrame")]
 
 autosummary_generate = False
 autosummary_imported_members = True

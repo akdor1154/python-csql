@@ -233,6 +233,11 @@ class Query(QueryBit, InstanceTracking):
 		newParams: Mapping[str, ParameterValue] | None = None,
 		overrides: csql.overrides.Overrides | None = None,
 	) -> pl.DataFrame:
+		"""
+		Return a small polars DataFrame to preview the results of this query.
+
+		:rtype: :class:`polars.DataFrame`
+		"""
 		import polars as pl
 
 		from ..utils import limit_query

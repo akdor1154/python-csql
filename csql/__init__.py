@@ -6,23 +6,28 @@ from ._.api import (
 	Q,
 )
 from ._.models.query import (
-	ParameterList as _Deprecated_ParameterList,
-)
-from ._.models.query import (
+	ClickhouseQueryArgs,
+	DuckDBQueryArgs,
 	ParameterPlaceholder,
 	Parameters,
 	ParameterValue,
+	PolarsQueryArgs,
 	Query,
 	QueryBit,
 	RenderedQuery,
 )
+from ._.models.query import (
+	ParameterList as _Deprecated_ParameterList,
+)
 from .overrides import Overrides as _Deprecated_Overrides
 
 __all__ = [
+	"ClickhouseQueryArgs",
+	"DuckDBQueryArgs",
 	"ParameterPlaceholder",
 	"ParameterValue",
 	"Parameters",
-	"Parameters",
+	"PolarsQueryArgs",
 	"Q",
 	"Query",
 	"QueryBit",
