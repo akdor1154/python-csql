@@ -4,11 +4,11 @@ import abc
 import zoneinfo
 from abc import ABC
 from collections.abc import Collection
-from collections.abc import Collection as CollectionABC
 from datetime import date, datetime
 from typing import (
 	TYPE_CHECKING,
 	NewType,
+	cast,
 )
 
 from ..models.dialect import ParamStyle, SQLDialect
@@ -18,7 +18,7 @@ from ..models.query import (
 	ParameterPlaceholder,
 	ScalarParameterValue,
 )
-from ..utils import assert_never
+from ..utils import assert_never, is_collection
 
 SQL = NewType("SQL", str)
 
@@ -120,8 +120,8 @@ class ParameterRenderer(ABC):
 		paramKey = param.key
 		paramValue = param.value
 		fmt = param.fmt
-		if isinstance(paramValue, CollectionABC) and not isinstance(paramValue, str):
-			_indices, sql = self._renderCollection(paramKey, paramValue)  # pyright: ignore[reportUnknownArgumentType]
+		if is_collection(paramValue):
+			_indices, sql = self._renderCollection(paramKey, paramValue)
 		else:
 			index, sql = self._renderScalar(paramKey, paramValue, fmt)
 			_indices = [index]
@@ -186,6 +186,35 @@ class DollarNumeric(NumericParameterRenderer):
 		return SQL(f"${index}")
 
 
+def _inferClickhouseScalarType(value: object) -> str:
+	if isinstance(value, str):
+		return "String"
+	elif isinstance(value, int):
+		return "Int64"
+	elif isinstance(value, datetime):
+		tz = value.tzinfo
+		if tz is not None and isinstance(tz, zoneinfo.ZoneInfo):
+			# 3 is default precision in clickhouse.. sometimes.
+			return f"DateTime64(3, '{tz.key}')"
+		else:
+			return "DateTime64"
+	elif isinstance(value, date):
+		return "Date"
+	elif isinstance(value, float):
+		return "Float64"
+	return ""
+
+
+def _inferClickhouseType(value: object) -> str:
+	if not is_collection(value):
+		return _inferClickhouseScalarType(value)
+	# only infer an array type if every element agrees, so empty and mixed collections need an explicit fmt.
+	elementTypes = {_inferClickhouseScalarType(v) for v in value}
+	if len(elementTypes) == 1 and (elementType := elementTypes.pop()) != "":
+		return f"Array({elementType})"
+	return ""
+
+
 class Clickhouse(ParameterRenderer):
 	def _renderScalarSql(self, index: int, key: AutoKey | str | None, fmt: str) -> SQL:
 		if key is None:
@@ -193,21 +222,11 @@ class Clickhouse(ParameterRenderer):
 		return SQL(f"{{{key.k if isinstance(key, AutoKey) else key}:{fmt}}}")
 
 	def render(self, param: ParameterPlaceholder) -> SQL:
-		if (fmt := param.fmt) == "":
-			if isinstance(param.value, str):
-				fmt = "String"
-			elif isinstance(param.value, int):
-				fmt = "Int64"
-			elif isinstance(param.value, datetime):
-				tz = param.value.tzinfo
-				if tz is not None and isinstance(tz, zoneinfo.ZoneInfo):
-					# 3 is default precision in clickhouse.. sometimes.
-					fmt = f"DateTime64(3, '{tz.key}')"
-				else:
-					fmt = "DateTime64"
-			elif isinstance(param.value, date):
-				fmt = "Date"
-			elif isinstance(param.value, float):
-				fmt = "Float64"
+		fmt = param.fmt or _inferClickhouseType(param.value)
+		if is_collection(param.value):
+			# clickhouse can bind Arrays natively instead of splitting elements
+			value = cast(ScalarParameterValue, list(param.value))
+			_index, sql = self._renderScalar(param.key, value, fmt)
+			return sql
 		newParam = param._withFmt(fmt)
 		return super().render(newParam)
