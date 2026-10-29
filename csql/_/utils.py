@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Generator, Iterable, Iterator
+from collections.abc import Callable, Collection, Generator, Iterable, Iterator
 from typing import (
 	TYPE_CHECKING,
+	Any,
 	Generic,
 	NoReturn,
+	TypeGuard,
 	TypeVar,
 )
 
@@ -34,6 +36,10 @@ def unique(gen: Iterable[T], fn: Callable[[T], R] = hash) -> Iterable[T]:
 			continue
 		yield val
 		seen.add(fn(val))
+
+
+def is_collection(val: object) -> TypeGuard[Collection[Any]]:
+	return isinstance(val, Collection) and not isinstance(val, str)
 
 
 def assert_never(x: NoReturn) -> NoReturn:

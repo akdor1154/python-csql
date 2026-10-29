@@ -1,3 +1,6 @@
+from datetime import date
+from typing import Any
+
 import pytest
 
 from csql import Parameters, Q, RenderedQuery
@@ -72,6 +75,45 @@ def test_parameters_dialect_qmark_reuse():
 		parameters=(1, 2, 3, 1, 2, 3),
 		parameter_names=(None, None, None, None, None, None),
 	)
+
+
+def test_parameters_dialect_clickhouse():
+	p = Parameters(abc="abc")
+	q = Q(f"select 1 where abc = {p['abc']}")
+	dialect = SQLDialect(paramstyle=ParamStyle.clickhouse)
+	assert q.build(dialect=dialect) == RenderedQuery(
+		sql="select 1 where abc = {abc:String}",
+		parameters=("abc",),
+		parameter_names=("abc",),
+	)
+
+
+def test_parameters_dialect_clickhouse_list():
+	p = Parameters(ids=["a", "b"])
+	q = Q(f"select 1 where id in {p['ids']:Array(String)}")
+	dialect = SQLDialect(paramstyle=ParamStyle.clickhouse)
+	built = q.build(dialect=dialect)
+	assert built.sql == "select 1 where id in {ids:Array(String)}"
+	assert built.ch["parameters"] == {"ids": ["a", "b"]}
+
+
+@pytest.mark.parametrize(
+	("value", "fmt"),
+	[
+		(["a", "b"], "Array(String)"),
+		([1, 2], "Array(Int64)"),
+		([date(2024, 1, 1)], "Array(Date)"),
+		([1, "a"], ""),
+		([], ""),
+	],
+)
+def test_parameters_dialect_clickhouse_list_inferred_type(value: list[Any], fmt: str):
+	p = Parameters(ids=value)
+	q = Q(f"select 1 where id in {p['ids']}")
+	dialect = SQLDialect(paramstyle=ParamStyle.clickhouse)
+	built = q.build(dialect=dialect)
+	assert built.sql == f"select 1 where id in {{ids:{fmt}}}"
+	assert built.ch["parameters"] == {"ids": value}
 
 
 def test_parameters_add_simple():

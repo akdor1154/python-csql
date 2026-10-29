@@ -18,7 +18,7 @@ from typing import (
 )
 
 from ..input.strparsing import InstanceTracking
-from ..utils import unique
+from ..utils import is_collection, unique
 from .dialect import SQLDialect
 
 if TYPE_CHECKING:
@@ -496,8 +496,8 @@ class Parameters:
 
 	@staticmethod
 	def _check_hashable_value(key: str | AutoKey, val: Any) -> Hashable:
-		if isinstance(val, Collection) and not isinstance(val, str):
-			val = tuple(val)  # pyright: ignore[reportUnknownVariableType, reportUnknownArgumentType]
+		if is_collection(val):
+			val = tuple(val)
 		try:
 			_h = hash(val)
 			return cast(Hashable, val)
